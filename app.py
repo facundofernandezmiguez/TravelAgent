@@ -1,8 +1,6 @@
 """Streamlit app for travel agent."""
 import streamlit as st
 from travel_agent import TravelAgent
-import asyncio
-from typing import Optional
 import traceback
 
 def initialize_session_state():
@@ -14,12 +12,12 @@ def initialize_session_state():
     if "error_count" not in st.session_state:
         st.session_state.error_count = 0
 
-async def process_message(agent: TravelAgent, message: str) -> str:
+def process_message(agent: TravelAgent, message: str) -> str:
     """Process a message using the travel agent."""
     try:
         # Reset error count on successful message
         st.session_state.error_count = 0
-        return await agent.process_message(message)
+        return agent.process_message(message)
     except Exception as e:
         st.session_state.error_count += 1
         error_msg = str(e)
@@ -87,9 +85,9 @@ def main():
             message_placeholder = st.empty()
             
             try:
-                # Process message asynchronously with loading indicator
+                # Process message 
                 with st.spinner("Pensando..."):
-                    response = asyncio.run(process_message(st.session_state.travel_agent, prompt))
+                    response = process_message(st.session_state.travel_agent, prompt)
                 
                 # Update chat
                 message_placeholder.markdown(response)

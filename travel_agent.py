@@ -1,22 +1,19 @@
 from datetime import datetime
 import os
+import time
 from dotenv import load_dotenv
 from pathlib import Path
 from langchain_groq import ChatGroq
-from langchain.agents import AgentType, initialize_agent
-from langchain.tools import Tool
+from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory
 import json
 import yaml
-from duckduckgo_search import DDGS
+import re
+from api_key_manager import APIKeyManager
+from duckduckgo_tool import TravelSearch
 
 # Load environment variables
-env_path = Path(__file__).parent / '.env'
-load_dotenv(dotenv_path=env_path)
-
-# Load API keys
-groq_api_key = os.getenv('GROQ_API_KEY')
-model_name = os.getenv('GROQ_MODEL_NAME')
+load_dotenv()
 
 # Load prompts
 prompts_path = Path(__file__).parent / "prompts.yaml"
@@ -32,245 +29,184 @@ class TravelInfo:
         self.num_travelers = None
         self.budget = None
         self.interests = []
-        
-    def is_complete(self):
-        """Check if all required information is gathered."""
-        required_fields = ['origin', 'destination', 'start_date', 'end_date', 'num_travelers', 'budget']
-        return all(getattr(self, field) is not None for field in required_fields)
-    
+
     def get_missing_info(self):
-        """Get list of missing information fields."""
+        """Return a list of missing required information."""
         missing = []
-        if not self.origin:
+        if self.origin is None:
             missing.append("origen")
-        if not self.destination:
+        if self.destination is None:
             missing.append("destino")
-        if not self.start_date:
+        if self.start_date is None:
             missing.append("fecha de inicio")
-        if not self.end_date:
+        if self.end_date is None:
             missing.append("fecha de fin")
-        if not self.num_travelers:
+        if self.num_travelers is None:
             missing.append("número de viajeros")
-        if not self.budget:
+        if self.budget is None:
             missing.append("presupuesto")
+        if not self.interests:
+            missing.append("intereses")
         return missing
+
+    def has_required_info(self):
+        """Check if we have all required information for an itinerary."""
+        return not bool(self.get_missing_info())
 
 class TravelAgent:
     def __init__(self):
         self.travel_info = TravelInfo()
         self.conversation_history = []
+        self.api_key_manager = APIKeyManager()
+        self.model_name = os.getenv('GROQ_MODEL_NAME')
+        self.search = TravelSearch()
         
-        # Create LLM
+        # Create LLM with initial key
         self.llm = ChatGroq(
-            temperature=0.7,
-            model_name=model_name,
-            groq_api_key=groq_api_key
+            temperature=0.1,
+            groq_api_key=self.api_key_manager.get_next_available_key(),
+            model_name=self.model_name
         )
         
-        # Initialize the agent with memory
-        self.memory = ConversationBufferMemory(
-            memory_key="chat_history",
-            return_messages=True,
-            output_key="output"
-        )
+        # Create conversation memory
+        self.memory = ConversationBufferMemory()
         
-        # Create tools list
-        tools = [
-            Tool(
-                name="search_flights",
-                func=self._search_flights,
-                description="Search for specific flights, hotels, and activities. Returns actual links to booking pages."
+        # Create conversation chain
+        self.conversation = ConversationChain(
+            llm=self.llm,
+            memory=self.memory,
+            verbose=True
+        )
+
+    def _handle_rate_limit_error(self, error_message: str, retry_function, *args, **kwargs):
+        """Handle rate limit error by rotating API keys and retrying."""
+        # Get next available key
+        next_key = self.api_key_manager.handle_rate_limit_error(error_message, self.llm.groq_api_key)
+        if next_key:
+            print(f"Switching to next API key...")
+            self.llm.groq_api_key = next_key
+            return retry_function(*args, **kwargs)
+        else:
+            print("No API keys available. All are at rate limit.")
+            wait_time = self._get_wait_time_from_error(error_message)
+            print(f"Waiting {wait_time} seconds before retry...")
+            time.sleep(wait_time)
+            return retry_function(*args, **kwargs)
+
+    def _get_wait_time_from_error(self, error_message: str) -> int:
+        """Extract wait time from rate limit error message."""
+        try:
+            time_match = re.search(r'try again in (\d+)m(\d+)', error_message)
+            if time_match:
+                minutes, seconds = map(int, time_match.groups())
+                return (minutes * 60) + int(seconds)
+        except:
+            pass
+        return 2  # default wait time
+
+    def process_message(self, message: str, retry_count: int = 0) -> str:
+        """Process a message from the user and return a response."""
+        try:
+            # If we've retried too many times, give up
+            if retry_count >= 2:
+                return "Lo siento, estamos experimentando problemas técnicos en este momento. Por favor, intentá más tarde."
+            
+            # Wait if needed for rate limits
+            self.api_key_manager.wait_if_needed(self.llm.groq_api_key)
+            
+            # Format conversation history
+            conversation_text = ""
+            for msg in self.conversation_history[-4:]:  # Only last 4 messages for context
+                if msg["role"] == "user":
+                    conversation_text += f"Usuario: {msg['content']}\n"
+                else:
+                    conversation_text += f"Asistente: {msg['content']}\n"
+            
+            # First get travel info from LLM without search results
+            extraction_prompt = PROMPTS['extraction'].format(
+                message=message,
+                origin=self.travel_info.origin or "no especificado",
+                destination=self.travel_info.destination or "no especificado",
+                start_date=self.travel_info.start_date or "no especificado",
+                end_date=self.travel_info.end_date or "no especificado",
+                travelers=self.travel_info.num_travelers or "no especificado",
+                budget=self.travel_info.budget or "no especificado",
+                interests=", ".join(self.travel_info.interests) if self.travel_info.interests else "no especificado",
+                conversation_history=conversation_text
             )
-        ]
-        
-        # Initialize the agent
-        self.agent = initialize_agent(
-            tools,
-            self.llm,
-            agent=AgentType.CONVERSATIONAL_REACT_DESCRIPTION,
-            verbose=False,
-            handle_parsing_errors=True,
-            max_iterations=10,
-            max_execution_time=30,
-            memory=self.memory
-        )
-
-    def get_conversation_history(self):
-        """Return the conversation history in a format suitable for Streamlit."""
-        return self.conversation_history
-
-    def _search_flights(self, query: str) -> str:
-        """Search for flights and travel information."""
-        results = []
-        
-        try:
-            with DDGS() as ddgs:
-                # Search for flights with more specific parameters
-                flight_results = list(ddgs.text(
-                    f"flight tickets {query} price schedule site:skyscanner.com OR site:kayak.com OR site:expedia.com",
-                    max_results=4
-                ))
-                if flight_results:
-                    results.append(("Flights", flight_results))
+            
+            # Get extraction response from LLM
+            extraction_response = self.llm.invoke(extraction_prompt)
+            response_text = extraction_response.content.strip()
+            
+            # Extract travel information from the response
+            had_all_info = self.travel_info.has_required_info()
+            try:
+                # Look for JSON block in the response
+                json_match = re.search(r'```json\s*({[^}]+})\s*```', response_text)
+                if json_match:
+                    info = json.loads(json_match.group(1))
+                    # Update travel info with extracted values
+                    for key in ["origin", "destination", "start_date", "end_date", "num_travelers", "budget"]:
+                        if key in info and info[key]:
+                            setattr(self.travel_info, key, info[key])
+                    
+                    if "interests" in info and info["interests"]:
+                        new_interests = [i for i in info["interests"] if i not in self.travel_info.interests]
+                        if new_interests:
+                            self.travel_info.interests.extend(new_interests)
+                    
+                    # Remove the JSON block from the response
+                    response_text = response_text.replace(json_match.group(0), "").strip()
+            except Exception as e:
+                print(f"Error extracting travel info from response: {str(e)}")
+            
+            # If we just got all required info, do a search and create itinerary
+            if not had_all_info and self.travel_info.has_required_info():
+                search_query = f"travel {self.travel_info.destination}"
+                if self.travel_info.interests:
+                    search_query += f" {' '.join(self.travel_info.interests)}"
+                search_results = self.search_travel_info(search_query)
                 
-                # Search for hotels with ratings and prices
-                destination = query.split('to')[1].strip().split()[0]  # Get just the city name
-                hotel_results = list(ddgs.text(
-                    f"hotels in {destination} price per night rating site:booking.com OR site:hotels.com",
-                    max_results=4
-                ))
-                if hotel_results:
-                    results.append(("Hotels", hotel_results))
-                
-                # Search for activities with prices and duration
-                activity_results = list(ddgs.text(
-                    f"top rated tourist activities {destination} price duration site:getyourguide.com OR site:viator.com",
-                    max_results=4
-                ))
-                if activity_results:
-                    results.append(("Activities", activity_results))
-            
-            # Add metadata to help format results
-            formatted_results = {
-                "search_criteria": query,
-                "results": results,
-                "timestamp": datetime.now().isoformat(),
-                "required_format": {
-                    "flights": "✈️ [Precio] [Aerolínea - Horario](link)",
-                    "hotels": "🏨 [Precio/noche] [Nombre - Estrellas](link)",
-                    "activities": "🎯 [Precio] [Nombre - Duración](link)"
-                }
-            }
-            
-            return json.dumps(formatted_results, ensure_ascii=False)
-        except Exception as e:
-            print(f"Search error: {str(e)}")
-            return json.dumps({"error": str(e), "results": []})
-
-    def _extract_info_from_message(self, message: str) -> bool:
-        """Extract travel information from user message using LLM.
-        Returns True if any information was updated."""
-        try:
-            # Debug: Print input message
-            print(f"Extracting info from: {message}")
-            
-            response = self.llm.invoke(PROMPTS['extraction'].format(message=message))
-            
-            # Debug: Print LLM response
-            print(f"LLM response: {response.content}")
-            
-            info = json.loads(response.content)
-            
-            # Debug: Print parsed info
-            print(f"Parsed info: {info}")
-            
-            updated = False
-            # Update travel info with extracted values
-            if "origin" in info and self.travel_info.origin is None:
-                self.travel_info.origin = info["origin"]
-                updated = True
-            if "destination" in info and self.travel_info.destination is None:
-                self.travel_info.destination = info["destination"]
-                updated = True
-            if "start_date" in info and self.travel_info.start_date is None:
-                self.travel_info.start_date = info["start_date"]
-                updated = True
-            if "end_date" in info and self.travel_info.end_date is None:
-                self.travel_info.end_date = info["end_date"]
-                updated = True
-            if "num_travelers" in info and self.travel_info.num_travelers is None:
-                self.travel_info.num_travelers = info["num_travelers"]
-                updated = True
-            if "budget" in info and self.travel_info.budget is None:
-                self.travel_info.budget = info["budget"]
-                updated = True
-            
-            # Debug: Print final state
-            print(f"Updated: {updated}")
-            print(f"Current travel info: {vars(self.travel_info)}")
-            
-            return updated
-            
-        except Exception as e:
-            print(f"Error extracting information: {str(e)}")
-            print(f"Response content: {response.content if 'response' in locals() else 'No response'}")
-            return False
-
-    async def process_message(self, user_input: str) -> str:
-        """Process a user message and return a response."""
-        try:
-            self.conversation_history.append({"role": "user", "content": user_input})
-            
-            # Try to extract information from the message
-            self._extract_info_from_message(user_input)
-            
-            # Always check if we need more information
-            if not self.travel_info.is_complete():
-                missing_info = self.travel_info.get_missing_info()
-                next_info = missing_info[0] if missing_info else None
-                
-                # Map field names to friendly questions in Spanish
-                question_map = {
-                    "origen": "¿Desde qué ciudad querés viajar? 🛫",
-                    "destino": "¿A qué ciudad te gustaría ir? 🌎",
-                    "fecha de inicio": "¿En qué fecha te gustaría empezar el viaje? 📅",
-                    "fecha de fin": "¿Cuándo pensás volver? 📅",
-                    "número de viajeros": "¿Cuántas personas van a viajar? 👥",
-                    "presupuesto": "¿Cuál es tu presupuesto aproximado para el viaje? 💰"
-                }
-                
-                friendly_question = question_map.get(next_info, f"¿Me podrías decir {next_info}?")
-                
-                # Format the conversation prompt
-                prompt = PROMPTS['conversation'].format(
-                    question=friendly_question,
-                    origin=self.travel_info.origin or '❓',
-                    destination=self.travel_info.destination or '❓',
-                    start_date=self.travel_info.start_date or '❓',
-                    end_date=self.travel_info.end_date or '❓',
-                    travelers=self.travel_info.num_travelers or '❓',
-                    budget=self.travel_info.budget or '❓'
+                # Get itinerary with search results
+                itinerary_prompt = PROMPTS['itinerary'].format(
+                    origin=self.travel_info.origin,
+                    destination=self.travel_info.destination,
+                    start_date=self.travel_info.start_date,
+                    end_date=self.travel_info.end_date,
+                    travelers=self.travel_info.num_travelers,
+                    budget=self.travel_info.budget,
+                    interests=", ".join(self.travel_info.interests),
+                    search_results=search_results
                 )
-                
-                response = await self.agent.ainvoke({"input": prompt})
-                response_text = response["output"]
-                self.conversation_history.append({"role": "assistant", "content": response_text})
-                return response_text
-                
-            # Only if we have all information, proceed with itinerary
-            search_query = (
-                f"flights from {self.travel_info.origin} to {self.travel_info.destination} "
-                f"from {self.travel_info.start_date} to {self.travel_info.end_date}"
-            )
+                itinerary_response = self.llm.invoke(itinerary_prompt)
+                response_text = itinerary_response.content.strip()
             
-            # Use search query in the itinerary request
-            itinerary_request = PROMPTS['itinerary'].format(
-                search_query=search_query,
-                origin=self.travel_info.origin,
-                destination=self.travel_info.destination,
-                start_date=self.travel_info.start_date,
-                end_date=self.travel_info.end_date,
-                travelers=self.travel_info.num_travelers,
-                budget=self.travel_info.budget
-            )
-            
-            response = await self.agent.ainvoke({"input": itinerary_request})
-            response_text = response["output"]
+            # Add to conversation history
+            self.conversation_history.append({"role": "user", "content": message})
             self.conversation_history.append({"role": "assistant", "content": response_text})
+            
             return response_text
             
         except Exception as e:
-            print(f"Error in process_message: {str(e)}")
-            raise
+            error_msg = str(e)
+            print(f"Error in process_message: {error_msg}")
+            
+            if "rate limit" in error_msg.lower():
+                return self._handle_rate_limit_error(
+                    error_msg,
+                    self.process_message,
+                    message,
+                    retry_count + 1
+                )
+            
+            return "Lo siento, ocurrió un error. Por favor, intentá nuevamente."
+
+    def search_travel_info(self, query: str) -> str:
+        """Search for travel information using the TravelSearch module."""
+        return self.search.search(query, self.travel_info)
 
 if __name__ == "__main__":
-    # Test the conversational agent
+    # Test the agent
     agent = TravelAgent()
-    
-    while True:
-        user_input = input("\nYou: ")
-        if user_input.lower() in ['exit', 'quit', 'bye']:
-            break
-        
-        response = agent.process_message(user_input)
-        print(f"\nAgent: {response}")
+    print(agent.process_message("Hola, quiero viajar a Madrid"))
