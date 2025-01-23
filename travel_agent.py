@@ -116,7 +116,7 @@ class TravelAgent:
             
             # Format conversation history
             conversation_text = ""
-            for msg in self.conversation_history[-4:]:  # Only last 4 messages for context
+            for msg in self.conversation_history[-3:]:
                 if msg["role"] == "user":
                     conversation_text += f"Usuario: {msg['content']}\n"
                 else:
