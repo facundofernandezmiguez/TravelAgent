@@ -246,7 +246,7 @@ class TravelAgent:
                 if "rate limit" in error_msg.lower():
                     print(f"Rate limit error with key {self.llm.groq_api_key[-8:]}")
                     self.api_key_manager.handle_rate_limit(self.llm.groq_api_key, error_msg)
-                    return self.process_message(message, retry_count)
+                    return self.process_message(message, retry_count + 1)  # Incrementar retry_count
                 raise e
             
             print("\n=== RESPUESTA DEL LLM ===")

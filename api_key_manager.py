@@ -37,13 +37,9 @@ class APIKeyManager:
                          if limit_until is not None]
             if wait_times:
                 min_wait = min(wait_times)
-                print(f"All API keys are rate limited. Shortest wait time: {min_wait:.2f} seconds")
-                # Esperar el tiempo mínimo más un pequeño margen
-                time.sleep(min_wait + 2)
-                # Intentar de nuevo después de esperar
-                return self.get_next_available_key()
+                raise Exception(f"All API keys are rate limited. Please wait {min_wait:.2f} seconds before trying again.")
             
-            raise Exception("No API keys available and no rate limit information")
+            raise Exception("No API keys available")
         
         # Elegir una clave al azar entre las disponibles
         return random.choice(available_keys)
