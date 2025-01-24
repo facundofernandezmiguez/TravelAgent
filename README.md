@@ -1,6 +1,6 @@
 # AI Travel Agent 🌎✈️
 
-Un asistente de viajes inteligente implementado con Streamlit, LangChain y Groq. Este agente ayuda a los usuarios a planificar sus viajes proporcionando recomendaciones en tiempo real y creando itinerarios detallados.
+Un asistente de viajes inteligente implementado con Streamlit, LangChain, Groq y DuckDuckGo. Este agente ayuda a los usuarios a planificar sus viajes proporcionando recomendaciones en tiempo real y creando itinerarios detallados.
 
 ## Características
 
