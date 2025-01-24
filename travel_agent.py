@@ -191,7 +191,8 @@ class TravelAgent:
         """Process a message from the user and return a response."""
         try:
             # If we've retried too many times, give up
-            if retry_count >= 2:
+            max_retries = len(self.api_key_manager.api_keys)
+            if retry_count >= max_retries:
                 return "Lo siento, estamos experimentando problemas técnicos en este momento. Por favor, intentá más tarde."
             
             # Get a fresh API key and update the LLM
@@ -326,7 +327,7 @@ class TravelAgent:
             
         except Exception as e:
             print(f"Error in process_message: {str(e)}")
-            if retry_count < 2:
+            if retry_count < len(self.api_key_manager.api_keys):
                 return self.process_message(message, retry_count + 1)
             return "Lo siento, hubo un error procesando tu mensaje. Por favor, intentá de nuevo."
 

@@ -8,9 +8,10 @@ class APIKeyManager:
         """Initialize the API key manager."""
         self.api_keys = []
         self.rate_limits = {}  # key -> (limit_until, remaining_tokens)
+        self.tried_keys = set()  # Conjunto de keys ya intentadas en el ciclo actual
         
         # Load all available API keys
-        for i in range(1, 8):  # We have keys from 1 to 7
+        for i in range(1, 9):  # Aumentamos a 8 para incluir la nueva key
             key = os.getenv(f'GROQ_API_KEY{i}')
             if key:
                 self.api_keys.append(key)
@@ -24,14 +25,18 @@ class APIKeyManager:
         current_time = datetime.now()
         available_keys = []
         
-        # First try to find a key that's not rate limited
+        # Si ya intentamos todas las keys, reiniciar el conjunto de intentadas
+        if len(self.tried_keys) >= len(self.api_keys):
+            self.tried_keys.clear()
+        
+        # First try to find keys that's not rate limited and no han sido intentadas
         for key in self.api_keys:
             limit_until, _ = self.rate_limits[key]
-            if limit_until is None or current_time > limit_until:
+            if key not in self.tried_keys and (limit_until is None or current_time > limit_until):
                 available_keys.append(key)
         
         if not available_keys:
-            # Calculate the shortest wait time
+            # Si no hay keys disponibles que no se hayan intentado, calcular tiempo de espera
             wait_times = [(limit_until - current_time).total_seconds() 
                          for limit_until, _ in self.rate_limits.values() 
                          if limit_until is not None]
@@ -41,8 +46,10 @@ class APIKeyManager:
             
             raise Exception("No API keys available")
         
-        # Elegir una clave al azar entre las disponibles
-        return random.choice(available_keys)
+        # Usar la primera key disponible que no hemos intentado
+        selected_key = available_keys[0]
+        self.tried_keys.add(selected_key)
+        return selected_key
 
     def handle_rate_limit(self, key: str, error_message: str):
         """Handle rate limit error for a specific key."""
