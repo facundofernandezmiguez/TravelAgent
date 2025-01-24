@@ -24,6 +24,7 @@ class APIKeyManager:
         current_time = datetime.now()
         available_keys = []
         
+        # First try to find a key that's not rate limited
         for key in self.api_keys:
             limit_until, _ = self.rate_limits[key]
             if limit_until is None or current_time > limit_until:
@@ -37,11 +38,14 @@ class APIKeyManager:
             if wait_times:
                 min_wait = min(wait_times)
                 print(f"All API keys are rate limited. Shortest wait time: {min_wait:.2f} seconds")
-                time.sleep(min_wait + 1)  # Add 1 second buffer
+                # Esperar el tiempo mínimo más un pequeño margen
+                time.sleep(min_wait + 2)
+                # Intentar de nuevo después de esperar
                 return self.get_next_available_key()
             
             raise Exception("No API keys available and no rate limit information")
         
+        # Elegir una clave al azar entre las disponibles
         return random.choice(available_keys)
 
     def handle_rate_limit(self, key: str, error_message: str):
@@ -53,16 +57,12 @@ class APIKeyManager:
             minutes = int(wait_time_match.group(1))
             seconds = float(wait_time_match.group(2))
             wait_time = timedelta(minutes=minutes, seconds=seconds)
-            self.rate_limits[key] = (datetime.now() + wait_time, 0)
+            self.rate_limits[key] = (datetime.now() + wait_time, None)
             print(f"API key {key[-8:]} rate limited. Will be available in {minutes}m {seconds:.2f}s")
         else:
-            # If we can't parse the wait time, set a default of 5 minutes
-            self.rate_limits[key] = (datetime.now() + timedelta(minutes=5), 0)
-            print(f"API key {key[-8:]} rate limited. Setting default wait time of 5 minutes")
-
-    def update_rate_limit(self, key: str, remaining_tokens: int):
-        """Update the remaining tokens for a key."""
-        self.rate_limits[key] = (None, remaining_tokens)
+            # If we can't parse the wait time, set a default of 2 minutes
+            self.rate_limits[key] = (datetime.now() + timedelta(minutes=2), None)
+            print(f"API key {key[-8:]} rate limited. Setting default wait time of 2 minutes")
 
     def get_api_key(self) -> str:
         """Get an API key that's not rate limited."""

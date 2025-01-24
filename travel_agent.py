@@ -106,7 +106,8 @@ class TravelAgent:
             model_name=os.getenv('GROQ_MODEL_NAME')
         )
         self.travel_info = TravelInfo()
-        self.conversation_history = []  # Restaurar historial        
+        self.conversation_history = []  # Restaurar historial
+        self.travel_search = TravelSearch()  # Inicializar el buscador
 
     def _debug_print_info(self):
         """Debug method to print current travel info"""
@@ -118,6 +119,12 @@ class TravelAgent:
         print(f"Travelers: {self.travel_info.num_travelers}")
         print(f"Budget: {self.travel_info.budget}")
         print(f"Interests: {self.travel_info.interests}\n")
+        print(f"Preferences:")
+        print(f"  - Alojamiento: {self.travel_info.accommodation}")
+        print(f"  - Ubicación: {self.travel_info.location}")
+        print(f"  - Transporte: {self.travel_info.transport}")
+        print(f"  - Comidas: {self.travel_info.meals}")
+        print(f"  - Requisitos: {self.travel_info.requirements}\n")
 
     def _handle_rate_limit_error(self, error_message: str, retry_function, *args, **kwargs):
         """Handle rate limit error by rotating API keys and retrying."""
@@ -291,6 +298,29 @@ class TravelAgent:
             
             # Add assistant response to history
             self.conversation_history.append({"role": "assistant", "content": response_text})
+            
+            # Check if user confirmed and we should start search
+            if (response_match and 
+                "Dame un momento mientras preparo un itinerario detallado" in response_match.group(1)):
+                # Perform the search
+                search_results = self.travel_search.search("", self.travel_info)
+                
+                # Format itinerary prompt with search results
+                itinerary_prompt = PROMPTS['itinerary'].format(
+                    origin=self.travel_info.origin,
+                    destination=self.travel_info.destination,
+                    start_date=self.travel_info.start_date,
+                    end_date=self.travel_info.end_date,
+                    travelers=self.travel_info.num_travelers,
+                    budget=self.travel_info.budget,
+                    interests=", ".join(self.travel_info.interests) if self.travel_info.interests else "no especificado",
+                    preferences=preferences_str,
+                    search_results=search_results
+                )
+                
+                # Get itinerary from LLM
+                itinerary_response = self.llm.invoke(itinerary_prompt)
+                return itinerary_response.content.strip()
             
             return response_text
             

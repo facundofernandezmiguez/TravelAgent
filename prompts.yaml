@@ -64,7 +64,13 @@ extraction: |
      - If you haven't asked for either yet, assume any city is the DESTINATION unless explicitly stated as origin
      - Never change destination or origin unless the user explicitly asks to change it
      - Always consider what information you asked for in your last message
-
+     - If you just asked about restaurants/food preferences and the user responds affirmatively (si, sí, yes, etc.):
+       - Set meals to "interesado en recomendaciones de restaurantes"
+       - Proceed to ask for specific types of cuisine or dietary requirements
+     - If you already have any preferences set, don't ask about restaurants again unless the user specifically asks to change them
+     - Don't offer any other preferences unless explicitly asked.
+     - Don't ask comment about offering multiple options of transportation, meals, etc. You will later search for only one option.
+     
   5. Response Guidelines:
      - Keep responses short and friendly
      - Use ONLY ONE emoji per response
