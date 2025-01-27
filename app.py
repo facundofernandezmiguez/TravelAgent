@@ -12,8 +12,8 @@ def initialize_session_state():
     if "error_count" not in st.session_state:
         st.session_state.error_count = 0
 
-def process_message(agent: TravelAgent, message: str) -> str:
-    """Process a message using the travel agent."""
+def process_user_message(agent: TravelAgent, message: str) -> str:
+    """Process a user message using the travel agent and handle errors."""
     try:
         # Reset error count on successful message
         st.session_state.error_count = 0
@@ -87,7 +87,7 @@ def main():
             try:
                 # Process message 
                 with st.spinner("Pensando..."):
-                    response = process_message(st.session_state.travel_agent, prompt)
+                    response = process_user_message(st.session_state.travel_agent, prompt)
                 
                 # Update chat
                 message_placeholder.markdown(response)

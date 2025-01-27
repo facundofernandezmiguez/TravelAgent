@@ -187,149 +187,131 @@ class TravelAgent:
         
         raise ValueError("No valid JSON found in response")
 
-    def process_message(self, message: str, retry_count: int = 0) -> str:
+    def process_message(self, message: str) -> str:
         """Process a message from the user and return a response."""
-        try:
-            # If we've retried too many times, give up
-            max_retries = len(self.api_key_manager.api_keys)
-            if retry_count >= max_retries:
-                return "Lo siento, estamos experimentando problemas técnicos en este momento. Por favor, intentá más tarde."
-            
-            # Get a fresh API key and update the LLM
-            self.llm.groq_api_key = self.api_key_manager.get_api_key()
-            
-            # Print current info for debugging
-            print("\n=== TRAVEL INFO ANTES ===")
-            self._debug_print_info()
-            print("===========================\n")
-            
-            # Add user message to history
-            self.conversation_history.append({"role": "user", "content": message})
-            
-            # Format conversation history
-            history_text = ""
-            for msg in self.conversation_history[-6:-1]:  # Last 5 messages excluding current
-                if msg["role"] == "user":
-                    history_text += f"Usuario: {msg['content']}\n"
-                else:
-                    history_text += f"Asistente: {msg['content']}\n"
-            
-            # Format preferences for prompt
-            preferences = {
-                "accommodation": self.travel_info.accommodation,
-                "location": self.travel_info.location,
-                "transport": self.travel_info.transport,
-                "meals": self.travel_info.meals,
-                "requirements": self.travel_info.requirements
-            }
-            preferences_str = ", ".join(f"{k}: {v}" for k, v in preferences.items() if v) or "no especificado"
-            
-            # Format travel info for the prompt
-            extraction_prompt = PROMPTS['extraction'].format(
-                message=message,
-                conversation_history=history_text,
-                origin=self.travel_info.origin or "no especificado",
-                destination=self.travel_info.destination or "no especificado",
-                start_date=self.travel_info.start_date or "no especificado",
-                end_date=self.travel_info.end_date or "no especificado",
-                travelers=self.travel_info.num_travelers or "no especificado",
-                budget=self.travel_info.budget or "no especificado",
-                interests=", ".join(self.travel_info.interests) if self.travel_info.interests else "no especificado",
-                preferences=preferences_str
-            )
-            
+        # Print current info for debugging (solo una vez)
+        print("\n=== TRAVEL INFO ANTES ===")
+        self._debug_print_info()
+        print("===========================\n")
+        
+        while True:
             try:
-                # Get extraction response from LLM
-                extraction_response = self.llm.invoke(extraction_prompt)
-                response_text = extraction_response.content.strip()
-            except Exception as e:
-                error_msg = str(e)
-                if "rate limit" in error_msg.lower():
-                    print(f"Rate limit error with key {self.llm.groq_api_key[-8:]}")
-                    self.api_key_manager.handle_rate_limit(self.llm.groq_api_key, error_msg)
-                    return self.process_message(message, retry_count + 1)  # Incrementar retry_count
-                raise e
-            
-            print("\n=== RESPUESTA DEL LLM ===")
-            print(response_text)
-            print("===========================\n")
-            
-            # Extract info and response parts
-            info_match = re.search(r'<EXTRACTED_INFO>\s*({[\s\S]*?})\s*</EXTRACTED_INFO>', response_text)
-            response_match = re.search(r'<RESPONSE>\s*([\s\S]*?)\s*</RESPONSE>', response_text)
-            
-            # Update travel info if we have extracted info
-            if info_match:
+                # Get a fresh API key and update the LLM
                 try:
-                    json_str = info_match.group(1)
-                    travel_info = json.loads(json_str)
-                    
-                    # Update travel info with new values, only if they're not empty or "no especificado"
-                    if travel_info.get('destination') and travel_info['destination'] != "no especificado":
-                        self.travel_info.destination = travel_info['destination']
-                    if travel_info.get('origin') and travel_info['origin'] != "no especificado":
-                        self.travel_info.origin = travel_info['origin']
-                    if travel_info.get('start_date') and travel_info['start_date'] != "no especificado":
-                        self.travel_info.start_date = travel_info['start_date']
-                    if travel_info.get('end_date') and travel_info['end_date'] != "no especificado":
-                        self.travel_info.end_date = travel_info['end_date']
-                    if travel_info.get('num_travelers') and travel_info['num_travelers'] != "no especificado":
-                        self.travel_info.num_travelers = travel_info['num_travelers']
-                    if travel_info.get('budget') and travel_info['budget'] != "no especificado":
-                        self.travel_info.budget = travel_info['budget']
-                    # Solo actualizar interests si es una lista válida y no contiene "no especificado"
-                    if (travel_info.get('interests') and 
-                        isinstance(travel_info['interests'], list) and 
-                        travel_info['interests'] and 
-                        "no especificado" not in travel_info['interests']):
-                        self.travel_info.interests = travel_info['interests']
-                    # Update preferences if present and valid
-                    for pref in ['accommodation', 'location', 'transport', 'meals', 'requirements']:
-                        if travel_info.get(pref) and travel_info[pref] != "no especificado":
-                            setattr(self.travel_info, pref, travel_info[pref])
-                    
-                    print("\n=== TRAVEL INFO DESPUÉS ===")
-                    self._debug_print_info()
-                    print("===========================\n")
+                    self.llm.groq_api_key = self.api_key_manager.get_api_key()
                 except Exception as e:
-                    print(f"Error parsing travel info: {str(e)}")
-            
-            # Get the actual response text
-            response_text = response_match.group(1).strip() if response_match else "Lo siento, hubo un error procesando tu mensaje."
-            
-            # Add assistant response to history
-            self.conversation_history.append({"role": "assistant", "content": response_text})
-            
-            # Check if user confirmed and we should start search
-            if (response_match and 
-                "Dame un momento mientras preparo un itinerario detallado" in response_match.group(1)):
-                # Perform the search
-                search_results = self.travel_search.search("", self.travel_info)
+                    if "rate limited" in str(e).lower():
+                        return f"Lo siento, todas las API keys están en rate limit. {str(e)}"
+                    return "Lo siento, estamos experimentando problemas técnicos en este momento. Por favor, intentá más tarde."
                 
-                # Format itinerary prompt with search results
-                itinerary_prompt = PROMPTS['itinerary'].format(
-                    origin=self.travel_info.origin,
-                    destination=self.travel_info.destination,
-                    start_date=self.travel_info.start_date,
-                    end_date=self.travel_info.end_date,
-                    travelers=self.travel_info.num_travelers,
-                    budget=self.travel_info.budget,
+                # Add user message to history
+                self.conversation_history.append({"role": "user", "content": message})
+                
+                # Format conversation history
+                history_text = ""
+                for msg in self.conversation_history[-6:-1]:  # Last 5 messages excluding current
+                    if msg["role"] == "user":
+                        history_text += f"Usuario: {msg['content']}\n"
+                    else:
+                        history_text += f"Asistente: {msg['content']}\n"
+                
+                # Format preferences for prompt
+                preferences = {
+                    "accommodation": self.travel_info.accommodation,
+                    "location": self.travel_info.location,
+                    "transport": self.travel_info.transport,
+                    "meals": self.travel_info.meals,
+                    "requirements": self.travel_info.requirements
+                }
+                preferences_str = ", ".join(f"{k}: {v}" for k, v in preferences.items() if v) or "no especificado"
+                
+                # Format travel info for the prompt
+                extraction_prompt = PROMPTS['extraction'].format(
+                    message=message,
+                    conversation_history=history_text,
+                    origin=self.travel_info.origin or "no especificado",
+                    destination=self.travel_info.destination or "no especificado",
+                    start_date=self.travel_info.start_date or "no especificado",
+                    end_date=self.travel_info.end_date or "no especificado",
+                    travelers=self.travel_info.num_travelers or "no especificado",
+                    budget=self.travel_info.budget or "no especificado",
                     interests=", ".join(self.travel_info.interests) if self.travel_info.interests else "no especificado",
-                    preferences=preferences_str,
-                    search_results=search_results
+                    preferences=preferences_str
                 )
                 
-                # Get itinerary from LLM
-                itinerary_response = self.llm.invoke(itinerary_prompt)
-                return itinerary_response.content.strip()
-            
-            return response_text
-            
-        except Exception as e:
-            print(f"Error in process_message: {str(e)}")
-            if retry_count < len(self.api_key_manager.api_keys):
-                return self.process_message(message, retry_count + 1)
-            return "Lo siento, hubo un error procesando tu mensaje. Por favor, intentá de nuevo."
+                try:
+                    # Get extraction response from LLM
+                    extraction_response = self.llm.invoke(extraction_prompt)
+                    response_text = extraction_response.content.strip()
+                    
+                    print("\n=== RESPUESTA DEL LLM ===")
+                    print(response_text)
+                    print("===========================\n")
+                    
+                    # Try to extract JSON from response if present
+                    try:
+                        info = self._extract_json(response_text)
+                        
+                        # Update travel info with new values, only if they're not empty or "no especificado"
+                        if info.get('destination') and info['destination'] != "no especificado":
+                            self.travel_info.destination = info['destination']
+                        if info.get('origin') and info['origin'] != "no especificado":
+                            self.travel_info.origin = info['origin']
+                        if info.get('start_date') and info['start_date'] != "no especificado":
+                            self.travel_info.start_date = info['start_date']
+                        if info.get('end_date') and info['end_date'] != "no especificado":
+                            self.travel_info.end_date = info['end_date']
+                        if info.get('num_travelers') and info['num_travelers'] != "no especificado":
+                            self.travel_info.num_travelers = info['num_travelers']
+                        if info.get('budget') and info['budget'] != "no especificado":
+                            self.travel_info.budget = info['budget']
+                        if (info.get('interests') and 
+                            isinstance(info['interests'], list) and 
+                            info['interests'] and 
+                            "no especificado" not in info['interests']):
+                            self.travel_info.interests = info['interests']
+                        for pref in ['accommodation', 'location', 'transport', 'meals', 'requirements']:
+                            if info.get(pref) and info[pref] != "no especificado":
+                                setattr(self.travel_info, pref, info[pref])
+                    except ValueError as e:
+                        # Si no hay JSON, asumimos que es una respuesta de seguimiento
+                        if "No valid JSON found" in str(e):
+                            print("No JSON found - assuming follow-up response")
+                        else:
+                            raise e
+                    
+                    # Try to extract response from the LLM's output
+                    response_match = re.search(r'<RESPONSE>(.*?)</RESPONSE>', response_text, re.DOTALL)
+                    if response_match:
+                        response = response_match.group(1).strip()
+                    else:
+                        # If no <RESPONSE> tag is found, use the entire response text
+                        response = response_text.strip()
+                    
+                    # Verificar si tenemos toda la información requerida
+                    if self.travel_info.has_required_info():
+                        if "¡Perfecto! Creo que ya tenemos bastante informacion" in response:
+                            if any(confirm in message.lower() for confirm in ["si", "sí", "dale", "ok", "listo", "perfecto"]):
+                                destination = self.travel_info.destination
+                                response = f"¡Excelente! Vamos a crear un itinerario increíble para tu viaje a {destination}. \n\nComenzaré buscando las mejores actividades y lugares que se ajusten a tus intereses y presupuesto.\n\nDame un momento mientras preparo un itinerario detallado para vos... ✨"
+                    
+                    self.conversation_history.append({"role": "assistant", "content": response})
+                    return response
+                    
+                except Exception as e:
+                    print(f"\n=== ERROR COMPLETO ===")
+                    print(f"Tipo de error: {type(e)}")
+                    print(f"Mensaje de error: {str(e)}")
+                    print("===========================\n")
+                    
+                    if "rate limit" in str(e).lower():
+                        print(f"Rate limit error with key {self.llm.groq_api_key[-8:]}")
+                        self.api_key_manager.handle_rate_limit(self.llm.groq_api_key, str(e))
+                        continue  # Intentar con la siguiente key
+                    raise e
+                    
+            except Exception as e:
+                return f"Lo siento, ocurrió un error: {str(e)}"
 
 if __name__ == "__main__":
     # Test the agent
