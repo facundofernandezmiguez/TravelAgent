@@ -1,82 +1,77 @@
 from typing import Dict, List, Optional, Any
 import json
 from datetime import datetime
-from duckduckgo_search import DDGS
+from duckduckgo_search import ddg
 
 class TravelSearch:
     def __init__(self):
-        self.ddgs = DDGS()
+        pass
 
     def search(self, query: str, travel_info: Any) -> str:
-        """Search for comprehensive travel information including flights, hotels, and activities.
+        """Search for travel information using DuckDuckGo search.
         
         Args:
             query: The search query
-            travel_info: TravelInfo object containing trip details
+            travel_info: TravelInfo object
             
         Returns:
-            JSON string containing search results
+            JSON string with search results
         """
         try:
             results = []
+            destination = travel_info.destination
             
-            # Parse the query to extract travel info
-            destination = travel_info.destination or self._extract_destination(query)
-            if not destination:
-                return json.dumps({"error": "No destination found in query", "results": []})
+            # Search for attractions
+            attractions_query = f"best tourist attractions in {destination}"
+            duck_results = ddg(attractions_query, max_results=5) or []
+            attractions_results = []
+            for result in duck_results[:3]:
+                title = result.get('title', 'No Title')
+                url = result.get('href', '')
+                snippet = result.get('body', '') or result.get('snippet', '')
+                content = snippet if snippet else f"Información sobre atracciones en {destination} no disponible."
+                attractions_results.append({
+                    "title": title,
+                    "url": url,
+                    "snippet": snippet,
+                    "content": content[:500]
+                })
             
-            # Search for flights
-            if travel_info.origin:
-                flight_query = (
-                    f"flight tickets from {travel_info.origin} to {destination} "
-                    f"{travel_info.start_date if travel_info.start_date else ''} "
-                    "price schedule site:skyscanner.com OR site:kayak.com OR site:expedia.com"
-                )
-                flight_results = list(self.ddgs.text(flight_query, max_results=4))
-                if flight_results:
-                    results.append(("Flights", flight_results))
+            if attractions_results:
+                results.append(("Tourist Attractions", attractions_results))
             
-            # Search for hotels
-            room_type = self._get_room_type(travel_info.num_travelers)
-            hotel_query = (
-                f"hotels in {destination} {room_type} price per night rating "
-                f"{travel_info.budget if travel_info.budget else ''} "
-                "site:booking.com OR site:hotels.com"
-            )
-            hotel_results = list(self.ddgs.text(hotel_query, max_results=4))
-            if hotel_results:
-                results.append(("Hotels", hotel_results))
+            # Search for travel tips
+            tips_query = f"travel tips for visiting {destination}"
+            tips_duck_results = ddg(tips_query, max_results=5) or []
+            tips_results = []
+            for result in tips_duck_results[:2]:
+                title = result.get('title', 'No Title')
+                url = result.get('href', '')
+                snippet = result.get('body', '') or result.get('snippet', '')
+                content = snippet if snippet else f"Información sobre consejos de viaje para {destination} no disponible."
+                tips_results.append({
+                    "title": title,
+                    "url": url,
+                    "snippet": snippet,
+                    "content": content[:500]
+                })
             
-            # Search for activities based on interests
-            if travel_info.interests:
-                for interest in travel_info.interests:
-                    activity_query = (
-                        f"top rated {interest} activities {destination} price duration "
-                        "site:getyourguide.com OR site:viator.com"
-                    )
-                    activity_results = list(self.ddgs.text(activity_query, max_results=2))
-                    if activity_results:
-                        results.append((f"{interest.title()} Activities", activity_results))
+            if tips_results:
+                results.append(("Travel Tips", tips_results))
             
-            # Add metadata to help format results
+            if not results:
+                raise Exception("No se pudieron obtener resultados de búsqueda. Por favor, intentá nuevamente.")
+            
             formatted_results = {
                 "search_criteria": {
-                    "query": query,
                     "destination": destination,
-                    "origin": travel_info.origin,
                     "start_date": travel_info.start_date,
                     "end_date": travel_info.end_date,
                     "travelers": travel_info.num_travelers,
-                    "budget": travel_info.budget,
-                    "interests": travel_info.interests
+                    "budget": travel_info.budget
                 },
                 "results": results,
-                "timestamp": datetime.now().isoformat(),
-                "required_format": {
-                    "flights": " [Precio] [Aerolínea - Horario](link)",
-                    "hotels": " [Precio/noche] [Nombre - Estrellas](link)",
-                    "activities": " [Precio] [Nombre - Duración](link)"
-                }
+                "timestamp": datetime.now().isoformat()
             }
             
             return json.dumps(formatted_results, ensure_ascii=False)
@@ -84,24 +79,3 @@ class TravelSearch:
         except Exception as e:
             print(f"Search error: {str(e)}")
             return json.dumps({"error": str(e), "results": []})
-
-    def _extract_destination(self, query: str) -> Optional[str]:
-        """Extract destination from query string."""
-        try:
-            parts = query.lower().split()
-            for i, word in enumerate(parts):
-                if word in ["to", "in", "at", "destination"]:
-                    return parts[i + 1].title()
-            return None
-        except:
-            return None
-
-    def _get_room_type(self, num_travelers: Optional[int]) -> str:
-        """Get appropriate room type based on number of travelers."""
-        if not num_travelers:
-            return ""
-        if num_travelers == 1:
-            return "single room"
-        if num_travelers == 2:
-            return "double room"
-        return "family room"

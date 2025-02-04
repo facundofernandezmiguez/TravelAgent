@@ -29,13 +29,7 @@ class TravelInfo:
         self.end_date = None
         self.num_travelers = None
         self.budget = None
-        self.interests = []
-        # Preferences as individual fields
-        self.accommodation = None
-        self.location = None
-        self.transport = None
-        self.meals = None
-        self.requirements = None
+        self.additional_notes = None
 
     def get_missing_info(self):
         """Return a list of missing required information."""
@@ -52,8 +46,6 @@ class TravelInfo:
             missing.append("número de viajeros")
         if self.budget is None:
             missing.append("presupuesto")
-        if not self.interests:
-            missing.append("intereses")
         return missing
 
     def has_required_info(self):
@@ -77,22 +69,11 @@ class TravelInfo:
             f"Start Date: {self._format_value(self.start_date)}",
             f"End Date: {self._format_value(self.end_date)}",
             f"Travelers: {self._format_value(self.num_travelers)}",
-            f"Budget: {self._format_value(self.budget)}",
-            f"Interests: {self._format_value(self.interests)}"
+            f"Budget: {self._format_value(self.budget)}"
         ]
         
-        # Add preferences section
-        preferences = []
-        if any([self.accommodation, self.location, self.transport, self.meals, self.requirements]):
-            preferences.extend([
-                "Preferencias:",
-                f"  - Alojamiento: {self._format_value(self.accommodation)}",
-                f"  - Ubicación: {self._format_value(self.location)}",
-                f"  - Transporte: {self._format_value(self.transport)}",
-                f"  - Comidas: {self._format_value(self.meals)}",
-                f"  - Requisitos: {self._format_value(self.requirements)}"
-            ])
-            info.extend(preferences)
+        if self.additional_notes:
+            info.append(f"Additional Notes: {self._format_value(self.additional_notes)}")
         
         return "\n".join(info)
 
@@ -108,6 +89,8 @@ class TravelAgent:
         self.travel_info = TravelInfo()
         self.conversation_history = []  # Restaurar historial
         self.travel_search = TravelSearch()  # Inicializar el buscador
+        self.search_completed = False
+        self.itinerary_created = False
 
     def _debug_print_info(self):
         """Debug method to print current travel info"""
@@ -118,28 +101,18 @@ class TravelAgent:
         print(f"End Date: {self.travel_info.end_date}")
         print(f"Travelers: {self.travel_info.num_travelers}")
         print(f"Budget: {self.travel_info.budget}")
-        print(f"Interests: {self.travel_info.interests}\n")
-        print(f"Preferences:")
-        print(f"  - Alojamiento: {self.travel_info.accommodation}")
-        print(f"  - Ubicación: {self.travel_info.location}")
-        print(f"  - Transporte: {self.travel_info.transport}")
-        print(f"  - Comidas: {self.travel_info.meals}")
-        print(f"  - Requisitos: {self.travel_info.requirements}\n")
+        if self.travel_info.additional_notes:
+            print(f"Additional Notes: {self.travel_info.additional_notes}\n")
 
     def _handle_rate_limit_error(self, error_message: str, retry_function, *args, **kwargs):
         """Handle rate limit error by rotating API keys and retrying."""
-        # Get next available key
-        next_key = self.api_key_manager.handle_rate_limit_error(error_message, self.llm.groq_api_key)
-        if next_key:
-            print(f"Switching to next API key...")
-            self.llm.groq_api_key = next_key
-            return retry_function(*args, **kwargs)
-        else:
-            print("No API keys available. All are at rate limit.")
-            wait_time = self._get_wait_time_from_error(error_message)
-            print(f"Waiting {wait_time} seconds before retry...")
-            time.sleep(wait_time)
-            return retry_function(*args, **kwargs)
+        # Handle rate limit error: update the current key and retry
+        print("Handling rate limit error...")
+        self.api_key_manager.handle_rate_limit(self.llm.groq_api_key, error_message)
+        next_key = self.api_key_manager.get_api_key()
+        print("Switching to next API key...")
+        self.llm.groq_api_key = next_key
+        return retry_function(*args, **kwargs)
 
     def _get_wait_time_from_error(self, error_message: str) -> int:
         """Extract wait time from rate limit error message."""
@@ -215,16 +188,6 @@ class TravelAgent:
                     else:
                         history_text += f"Asistente: {msg['content']}\n"
                 
-                # Format preferences for prompt
-                preferences = {
-                    "accommodation": self.travel_info.accommodation,
-                    "location": self.travel_info.location,
-                    "transport": self.travel_info.transport,
-                    "meals": self.travel_info.meals,
-                    "requirements": self.travel_info.requirements
-                }
-                preferences_str = ", ".join(f"{k}: {v}" for k, v in preferences.items() if v) or "no especificado"
-                
                 # Format travel info for the prompt
                 extraction_prompt = PROMPTS['extraction'].format(
                     message=message,
@@ -235,18 +198,50 @@ class TravelAgent:
                     end_date=self.travel_info.end_date or "no especificado",
                     travelers=self.travel_info.num_travelers or "no especificado",
                     budget=self.travel_info.budget or "no especificado",
-                    interests=", ".join(self.travel_info.interests) if self.travel_info.interests else "no especificado",
-                    preferences=preferences_str
+                    preferences=self.travel_info.additional_notes or "no especificado"
                 )
                 
                 try:
                     # Get extraction response from LLM
-                    extraction_response = self.llm.invoke(extraction_prompt)
-                    response_text = extraction_response.content.strip()
+                    max_retries = 3
+                    retry_count = 0
+                    while retry_count < max_retries:
+                        try:
+                            extraction_response = self.llm.invoke(extraction_prompt)
+                            response_text = extraction_response.content.strip()
+                            break
+                        except Exception as e:
+                            error_str = str(e).lower()
+                            print("\n=== ERROR COMPLETO ===")
+                            print(f"Tipo de error: {type(e)}")
+                            print(f"Mensaje de error: {str(e)}")
+                            print("===========================\n")
+                            
+                            if ("503" in error_str or "service unavailable" in error_str) and retry_count < max_retries - 1:
+                                retry_count += 1
+                                print(f"Reintentando... ({retry_count}/{max_retries})")
+                                time.sleep(2)  # Wait 2 seconds before retry
+                                continue
+                            elif "rate limit" in error_str:
+                                return self._handle_rate_limit_error(str(e), self.process_message, message)
+                            else:
+                                if "503" in error_str or "service unavailable" in error_str:
+                                    return ("Lo siento, el servicio está temporalmente no disponible. "
+                                           "Por favor, intentá nuevamente en unos minutos. 🔄")
+                                else:
+                                    return ("Disculpá, hubo un problema al procesar tu mensaje. "
+                                           "Por favor, intentá nuevamente. Si el problema persiste, contactá al soporte. 🔧")
                     
                     print("\n=== RESPUESTA DEL LLM ===")
                     print(response_text)
                     print("===========================\n")
+                    
+                    # Extract only the RESPONSE content
+                    response_match = re.search(r'<RESPONSE>\s*(.*?)\s*</RESPONSE>', response_text, re.DOTALL)
+                    if response_match:
+                        response = response_match.group(1).strip()
+                    else:
+                        response = "Lo siento, hubo un problema al procesar la respuesta. Por favor, intentá nuevamente. 🔧"
                     
                     # Try to extract JSON from response if present
                     try:
@@ -265,14 +260,8 @@ class TravelAgent:
                             self.travel_info.num_travelers = info['num_travelers']
                         if info.get('budget') and info['budget'] != "no especificado":
                             self.travel_info.budget = info['budget']
-                        if (info.get('interests') and 
-                            isinstance(info['interests'], list) and 
-                            info['interests'] and 
-                            "no especificado" not in info['interests']):
-                            self.travel_info.interests = info['interests']
-                        for pref in ['accommodation', 'location', 'transport', 'meals', 'requirements']:
-                            if info.get(pref) and info[pref] != "no especificado":
-                                setattr(self.travel_info, pref, info[pref])
+                        if info.get('additional_notes') and info['additional_notes'] != "no especificado":
+                            self.travel_info.additional_notes = info['additional_notes']
                     except ValueError as e:
                         # Si no hay JSON, asumimos que es una respuesta de seguimiento
                         if "No valid JSON found" in str(e):
@@ -280,35 +269,161 @@ class TravelAgent:
                         else:
                             raise e
                     
-                    # Try to extract response from the LLM's output
-                    response_match = re.search(r'<RESPONSE>(.*?)</RESPONSE>', response_text, re.DOTALL)
-                    if response_match:
-                        response = response_match.group(1).strip()
-                    else:
-                        # If no <RESPONSE> tag is found, use the entire response text
-                        response = response_text.strip()
-                    
                     # Verificar si tenemos toda la información requerida
                     if self.travel_info.has_required_info():
-                        if "¡Perfecto! Creo que ya tenemos bastante informacion" in response:
-                            if any(confirm in message.lower() for confirm in ["si", "sí", "dale", "ok", "listo", "perfecto"]):
-                                destination = self.travel_info.destination
-                                response = f"¡Excelente! Vamos a crear un itinerario increíble para tu viaje a {destination}. \n\nComenzaré buscando las mejores actividades y lugares que se ajusten a tus intereses y presupuesto.\n\nDame un momento mientras preparo un itinerario detallado para vos... ✨"
+                        # Check if this is a confirmation response
+                        user_confirmed = any(word in message.lower() for word in [
+                            "si", "sí", "ok", "dale", "listo", "estamos listos", "estamos bien", "perfecto"
+                        ])
+                        
+                        if user_confirmed and not self.search_completed:
+                            # Set flag and perform search
+                            self.search_completed = True
+                            
+                            # Send the searching message
+                            searching_msg = (f"¡Excelente! Vamos a crear un itinerario increíble para tu viaje a {self.travel_info.destination}. \n\n"
+                                          "Comenzaré buscando las mejores actividades y lugares que se ajusten a tus intereses y presupuesto.\n\n"
+                                          "Dame un momento mientras preparo un itinerario detallado para vos... ✨")
+                            
+                            self.conversation_history.append({"role": "assistant", "content": searching_msg})
+                            
+                            # Perform the search
+                            try:
+                                # Search for attractions
+                                attractions_query = f"best tourist attractions things to do travel guide {self.travel_info.destination}"
+                                web_results = search_web(query=attractions_query)
+                                
+                                results = []
+                                attractions_results = []
+                                
+                                # Process top 3 attraction results
+                                for result in web_results[:3]:
+                                    try:
+                                        content = read_url_content(Url=result["url"])
+                                        if content:
+                                            attractions_results.append({
+                                                "title": result["title"],
+                                                "url": result["url"],
+                                                "snippet": result["snippet"],
+                                                "content": content[:500]  # Limit content length
+                                            })
+                                    except Exception as e:
+                                        print(f"Error reading URL {result['url']}: {str(e)}")
+                                        continue
+                                
+                                if attractions_results:
+                                    results.append(("Tourist Attractions", attractions_results))
+                                
+                                # Search for travel tips
+                                if results:
+                                    tips_query = f"travel tips recommendations best time to visit {self.travel_info.destination} tourist guide"
+                                    tips_web_results = search_web(query=tips_query)
+                                    
+                                    tips_results = []
+                                    for result in tips_web_results[:2]:
+                                        try:
+                                            content = read_url_content(Url=result["url"])
+                                            if content:
+                                                tips_results.append({
+                                                    "title": result["title"],
+                                                    "url": result["url"],
+                                                    "snippet": result["snippet"],
+                                                    "content": content[:500]
+                                                })
+                                        except Exception as e:
+                                            print(f"Error reading URL {result['url']}: {str(e)}")
+                                            continue
+                                    
+                                    if tips_results:
+                                        results.append(("Travel Tips", tips_results))
+                                
+                                # If we got no results at all, return error
+                                if not results:
+                                    self.search_completed = False
+                                    return "No pude encontrar información sobre ese destino. ¿Podrías confirmar si el destino está bien escrito? 🤔"
+                                
+                                # Format the itinerary prompt with search results
+                                itinerary_prompt = PROMPTS['itinerary'].format(
+                                    destination=self.travel_info.destination,
+                                    start_date=self.travel_info.start_date,
+                                    end_date=self.travel_info.end_date,
+                                    travelers=self.travel_info.num_travelers,
+                                    budget=self.travel_info.budget,
+                                    search_results=json.dumps(results, ensure_ascii=False)
+                                )
+                                
+                                # Get itinerary from LLM
+                                try:
+                                    itinerary_response = self.llm.invoke(itinerary_prompt)
+                                    self.itinerary_created = True
+                                    
+                                    # Extract only the response content
+                                    response_match = re.search(r'<RESPONSE>\s*(.*?)\s*</RESPONSE>', itinerary_response.content, re.DOTALL)
+                                    if response_match:
+                                        return response_match.group(1).strip()
+                                    return itinerary_response.content.strip()
+                                except Exception as e:
+                                    error_str = str(e).lower()
+                                    print("\n=== ERROR COMPLETO ===")
+                                    print(f"Tipo de error: {type(e)}")
+                                    print(f"Mensaje de error: {str(e)}")
+                                    print("===========================\n")
+                                    
+                                    if "organization_restricted" in str(e):
+                                        return ("Lo siento, hay un problema con el servicio de IA en este momento. "
+                                               "Por favor, contactá al soporte técnico para resolver el problema de acceso. 🔧")
+                                    elif "rate limit" in error_str:
+                                        return ("El servicio está temporalmente ocupado. "
+                                               "Por favor, intentá nuevamente en unos minutos. 🕒")
+                                    else:
+                                        return ("Hubo un problema al generar el itinerario. "
+                                               "Por favor, intentá nuevamente. Si el problema persiste, contactá al soporte. 🔧")
+                                
+                            except json.JSONDecodeError:
+                                print("Error parsing search results JSON")
+                                self.search_completed = False
+                                return "Hubo un problema procesando la información. ¿Podemos intentarlo nuevamente? 🔄"
+                            except Exception as e:
+                                print(f"Error during search: {str(e)}")
+                                self.search_completed = False
+                                if "Ratelimit" in str(e):
+                                    return "El servicio está temporalmente no disponible por límite de uso. Por favor, intentá nuevamente en unos minutos. 🔄"
+                                return "Lo siento, hubo un problema al buscar la información. ¿Podemos intentarlo nuevamente? 🔄"
+                        
+                        elif not user_confirmed or not self.search_completed:
+                            # Show the confirmation message
+                            confirmation_msg = (f"¡Perfecto! Creo que ya tenemos bastante informacion para planear tu itinerario. "
+                                   "Antes confirmemos estos datos:\n\n"
+                                   f"- Viaje: de {self.travel_info.origin} a {self.travel_info.destination}\n"
+                                   f"- Fechas: del {self.travel_info.start_date} al {self.travel_info.end_date}\n"
+                                   f"- Viajeros: {self.travel_info.num_travelers}\n"
+                                   f"- Presupuesto: {self.travel_info.budget}\n"
+                                   "¿Estamos listos para empezar la busqueda, o querés cambiar algo? ✨")
+                            self.conversation_history.append({"role": "assistant", "content": confirmation_msg})
+                            return confirmation_msg
                     
                     self.conversation_history.append({"role": "assistant", "content": response})
                     return response
                     
                 except Exception as e:
-                    print(f"\n=== ERROR COMPLETO ===")
+                    error_str = str(e).lower()
+                    print("\n=== ERROR COMPLETO ===")
                     print(f"Tipo de error: {type(e)}")
                     print(f"Mensaje de error: {str(e)}")
                     print("===========================\n")
                     
-                    if "rate limit" in str(e).lower():
-                        print(f"Rate limit error with key {self.llm.groq_api_key[-8:]}")
-                        self.api_key_manager.handle_rate_limit(self.llm.groq_api_key, str(e))
-                        continue  # Intentar con la siguiente key
-                    raise e
+                    if "503" in error_str or "service unavailable" in error_str:
+                        return ("Lo siento, el servicio está temporalmente no disponible. "
+                               "Por favor, intentá nuevamente en unos minutos. 🔄")
+                    elif "rate limit" in error_str:
+                        return self._handle_rate_limit_error(str(e), self.process_message, message)
+                    elif "APITimeoutError" in error_str:
+                        print("Timeout error encountered, retrying after brief wait...")
+                        time.sleep(2)
+                        continue
+                    else:
+                        return ("Disculpá, hubo un problema al procesar tu mensaje. "
+                               "Por favor, intentá nuevamente. Si el problema persiste, contactá al soporte. 🔧")
                     
             except Exception as e:
                 return f"Lo siento, ocurrió un error: {str(e)}"

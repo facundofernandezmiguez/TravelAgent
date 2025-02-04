@@ -18,3 +18,4 @@ wikipedia
 streamlit==1.31.0
 langgraph==0.0.10
 pyyaml==6.0.1
+deepeval==0.12.4
