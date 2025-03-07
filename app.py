@@ -1,5 +1,6 @@
-from src.app import *
+import streamlit.cli as stcli
+import sys
 
-if __name__ == "__main__":
-    # La aplicación Streamlit se ejecutará automáticamente cuando este archivo sea ejecutado
-    pass
+if __name__ == '__main__':
+    sys.argv = ["streamlit", "run", "src/app.py"]
+    sys.exit(stcli.main())

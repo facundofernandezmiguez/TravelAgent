@@ -47,6 +47,6 @@ if submit_button:
                 itinerario = generar_itinerario(origen, destinos, fecha_inicio, fecha_fin, preferencias)
                 st.success("✅ ¡Itinerario generado exitosamente!")
                 st.markdown("### Tu itinerario personalizado:")
-                st.write(itinerario)
+                st.markdown(itinerario)
             except Exception as e:
                 st.error(f"❌ Ocurrió un error al generar el itinerario: {str(e)}")

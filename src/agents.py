@@ -20,15 +20,15 @@ agente_actividades = Agent(
 
 agente_vuelos = Agent(
     role="Buscador de Transportes",
-    goal="Encontrar vuelos para los traslados especificados. **Encontrar UNA ÚNICA OPCIÓN para cada traslado (ida y vuelta y entre ciudades).**", # Goal más específico: UNA ÚNICA OPCIÓN
+    goal="Encontrar vuelos para los traslados especificados. **Encontrar UNA ÚNICA OPCIÓN para cada traslado (ida y vuelta y entre ciudades).** Si es un vuelo, debes explicitar el nombre del vuelo.", 
     backstory=(
-        "Sos un experto en encontrar vuelos de manera **rápida y eficiente**. " # Énfasis en "rápida y eficiente"
-        "Tu objetivo es encontrar **UNA SOLA OPCIÓN CONVENIENTE** para cada traslado necesario (ida y vuelta y entre ciudades). " # Claramente UNA SOLA OPCIÓN
-        "**Realizá la MENOR CANTIDAD DE BÚSQUEDAS POSIBLES.** " # Énfasis en MINIMA cantidad de búsquedas
-        "Una vez que encuentres **UNA OPCIÓN RAZONABLE** para cada vuelo, **DETENÉ la búsqueda inmediatamente.** " # Detener la búsqueda al encontrar UNA opción
-        "**NO BUSQUES OPCIONES ADICIONALES, NO COMPARES PRECIOS EXTENSAMENTE, NO BUSQUES HORARIOS DETALLADOS.** " # Excluir explícitamente búsquedas innecesarias
-        "Simplemente encontrá una opción que parezca adecuada en términos de aerolínea y horario general, y pasá al siguiente traslado." # Enfoque en "adecuada" y pasar al siguiente traslado
-        "Recordá, **UNA OPCIÓN POR TRASLADO ES SUFICIENTE.**" # Reiterar: UNA OPCIÓN ES SUFICIENTE
+        "Sos un experto en encontrar vuelos de manera **rápida y eficiente**. " 
+        "Tu objetivo es encontrar **UNA SOLA OPCIÓN CONVENIENTE** para cada traslado necesario (ida y vuelta y entre ciudades). " 
+        "**Realizá la MENOR CANTIDAD DE BÚSQUEDAS POSIBLES.** " 
+        "Una vez que encuentres **UNA OPCIÓN RAZONABLE** para cada vuelo, **DETENÉ la búsqueda inmediatamente.** " 
+        "**NO BUSQUES OPCIONES ADICIONALES, NO COMPARES PRECIOS EXTENSAMENTE, NO BUSQUES HORARIOS DETALLADOS.** " 
+        "Simplemente encontrá una opción que parezca adecuada en términos de aerolínea y horario general, y pasá al siguiente traslado." 
+        "Recordá, **UNA OPCIÓN POR TRASLADO ES SUFICIENTE.**" 
     ),
     tools=[BuscadorWeb()],
     llm=llm,
@@ -54,9 +54,10 @@ agente_planificacion = Agent(
     role="Planificador de Itinerarios",
     goal="Crear un itinerario de viaje **DETALLADO, ATRACTIVO y en ESPAÑOL ARGENTINO con emojis.** **UTILIZANDO LA INFORMACIÓN PROPORCIONADA POR LOS OTROS AGENTES. NO REDUNDAR EN BÚSQUEDAS INNECESARIAS.**", 
     backstory=(
-        "Sos el Manager y Planificador de Viajes principal. Tu función es COORDINAR a los agentes Buscador de Actividades, Buscador de Vuelos y Buscador de Hoteles. " # Manager role emphasized
-        "Recibís la información de ellos y la USÁS para crear un itinerario detallado y atractivo. " # Use information, don't re-search
-        "NO realizás búsquedas de actividades directamente. Tu foco es PLANIFICAR y PRESENTAR la información en un itinerario genial."
+        "Sos el Manager y Planificador de Viajes principal. Tu función es COORDINAR a los agentes Buscador de Actividades, Buscador de Vuelos y Buscador de Hoteles. " 
+        "Recibís la información de ellos y la USÁS para crear un itinerario detallado y atractivo. " 
+        "Una vez que recibas informacion de vuelos, hoteles y actividades, presenta los datos de forma ordenada y detiene la busqueda inmediatamente"
+        "**NO realizás búsquedas de actividades directamente. Tu foco es PLANIFICAR y PRESENTAR la información en un itinerario genial.**"
         "**Escribí en un ESPAÑOL ARGENTINO natural y amigable. Utiliza emojis** " 
         "**DESARROLLÁ CADA DÍA DEL ITINERARIO CON UN PÁRRAFO DESCRIPTIVO**, mencionando las actividades principales, "
         "dando **SUGERENCIAS CORTAS Y ATRACTIVAS** sobre qué hacer y ver en cada lugar. " 
@@ -84,13 +85,17 @@ def generar_itinerario(origen, destinos, fecha_inicio, fecha_fin, preferencias):
     task_vuelos = Task(
     description=f"""Encuentra **UNA ÚNICA OPCIÓN** de vuelo de ida y vuelta desde {origen} a uno de los destinos para el {fecha_inicio} y {fecha_fin}. También encuentra una opcion de transporte de viaje entre ciudades de destino según itinerario: {destinos}.
     **BUSCA LA OPCIÓN MÁS RAZONABLE EN TÉRMINOS DE PRECIO Y HORARIO GENERAL, PERO NO NECESITAS HACER UNA BÚSQUEDA EXHAUSTIVA NI COMPARAR DETALLADAMENTE.**
+    **Proporciona el enlace a un sitio donde el usuario pueda ver las opciones de vuelos y tren.**
     Presenta la información de manera concisa: aerolínea, número de vuelo (si está disponible), horarios aproximados de salida y llegada, y precio estimado (si lo encuentras fácilmente).""",
     agent=agente_vuelos,
     expected_output="" 
     )
 
     task_hoteles = Task(
-        description=f"Investiga y encuentra dos opciones de hoteles en cada una de las ciudades de {destinos}: una opción lujosa y una económica.  Presenta ambas opciones por ciudad. No hagas busquedas detalladas de cada hotel, simplemente junta informacion de la hoteles en : {destinos} y listo.",
+        description=f"""Investiga y encuentra enlaces a listas de hoteles lujosos y económicos en cada una de las ciudades de {destinos}. 
+    Proporcioná un enlace para hoteles lujosos y un enlace para hoteles económicos por cada ciudad. 
+    **Realizá SOLO UNA BÚSQUEDA por tipo de hotel (lujoso y económico) por ciudad y DETENETE una vez que tengas los enlaces.**
+    No es necesario buscar nombres específicos de hoteles, simplemente entrega los enlaces a las listas relevantes.""",
         agent=agente_hoteles,
         expected_output=""
     )
@@ -106,8 +111,7 @@ Día 1: [Fecha dia 1] - [Ciudad 1]
 
 Mañana:
 Actividad: [Descripción de la actividad] [Emoji].
-Vuelo sugerido: [Información del vuelo, si aplica]
-Transporte: [Información de transporte, si aplica]
+Transporte: [Horario de transporte, aerolínea, tren, número de vuelo (si está disponible)] [Emoji]
 Tarde:
 Actividad: [Descripción de la actividad] [Emoji].
 Almuerzo: [Sugerencia de almuerzo, si aplica] [Emoji].
@@ -118,7 +122,7 @@ Cena: [Sugerencia de cena, si aplica] [Emoji].
 Día 2: [Fecha dia 2] - [Ciudad 2]
 ... (y así sucesivamente para cada día)
 
-Opciones de Alojamiento:
+Opciones de Alojamiento [Emoji]:
 
 [Ciudad 1]:
 [Tipo de Hotel - Lujo/Económico]:
@@ -130,7 +134,20 @@ Enlace: [Enlace]
 [Tipo de Hotel - Lujo/Económico]:
 [Nombre del Hotel] ⭐⭐⭐
 Dirección: [Dirección]
-Enlace: [Enlace]""",
+Enlace: [Enlace]
+
+Opciones de Transporte [Emoji]:
+Desde [Origen] hasta [Ciudad 1]:
+[Horario de transporte, aerolínea, tren, número de vuelo (si está disponible)]
+
+
+Desde [Ciudad1] hasta [Ciudad 2] [Emoji]:
+[Horario de transporte, aerolínea, tren, número de vuelo (si está disponible)]
+
+Desde [Ciudad N] hasta [Origen] [Emoji]: 
+[Horario de transporte, aerolínea, tren, número de vuelo (si está disponible)]
+"""
+,
     agent=agente_planificacion,
     expected_output=""
     )

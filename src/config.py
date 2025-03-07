@@ -6,13 +6,16 @@ from crewai.agent import LLM
 load_dotenv()
 
 # Obtener claves API
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 SERPER_API_KEY = os.getenv("SERPER_API_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # Verificar que la clave API esté cargada
-if not GROQ_API_KEY:
-    raise ValueError("Error: GROQ_API_KEY no está configurada en el archivo .env")
+if not GEMINI_API_KEY:
+    raise ValueError("Error: GEMINI_API_KEY no está configurada en el archivo .env")
+
+if not SERPER_API_KEY:
+    raise ValueError("Error: SERPER_API_KEY no está configurada en el archivo .env")
+
 
 # Configurar el LLM
 llm = LLM(
