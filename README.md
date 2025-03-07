@@ -2,7 +2,7 @@
 
 Esta aplicación utiliza inteligencia artificial para generar itinerarios de viaje personalizados. Se basa en el framework [CrewAI](https://github.com/crewai-ai/crewai) y utiliza agentes especializados para buscar actividades turísticas, vuelos y hoteles. Además, la aplicación presenta el itinerario generado en **Streamlit**, con descripciones atractivas en español argentino y emojis.
 
----
+
 
 ## Tabla de Contenidos
 
@@ -14,7 +14,7 @@ Esta aplicación utiliza inteligencia artificial para generar itinerarios de via
 - [Correcciones Realizadas](#correcciones-realizadas)
 - [Contribuciones y Licencia](#contribuciones-y-licencia)
 
----
+
 
 ## Características
 
@@ -32,13 +32,16 @@ Esta aplicación utiliza inteligencia artificial para generar itinerarios de via
 
 ## Estructura del Proyecto
 
-project/ │ ├── src/ │ ├── agents.py # Definición de agentes, tareas y función para generar el itinerario. │ ├── tools.py # Herramienta para realizar búsquedas en la web (utiliza SERPER_API_KEY). │ ├── config.py # Configuración del LLM y carga de claves API desde el archivo .env. │ └── app.py # Aplicación Streamlit que interactúa con el usuario. │ ├── requirements.txt # Dependencias del proyecto. └── app.py # Archivo de entrada (corregido) para lanzar la aplicación.
+project/ │ 
+├── src/ │ 
+    ├── agents.py # Definición de agentes, tareas y función para generar el itinerario. │ 
+    ├── tools.py # Herramienta para realizar búsquedas en la web (utiliza SERPER_API_KEY). │ 
+    ├── config.py # Configuración del LLM y carga de claves API desde el archivo .env. 
+    ├── app.py # Aplicación Streamlit que interactúa con el usuario. │ 
+├── requirements.txt # Dependencias del proyecto. 
+└── app.py # Archivo de entrada para ejecutar la aplicación.
 
-yaml
-Copiar
-Editar
 
----
 
 ## Instalación
 
@@ -96,35 +99,3 @@ Editar
 python app.py
 Este archivo está configurado para invocar Streamlit y correr la aplicación ubicada en src/app.py.
 
-Correcciones Realizadas
-1. Corrección en el archivo app.py (raíz)
-El contenido original de app.py en la raíz no iniciaba la aplicación. Se ha actualizado el código para que, al ejecutar python app.py, se inicie la aplicación Streamlit correctamente. El nuevo contenido es:
-
-python
-Copiar
-Editar
-import streamlit.cli as stcli
-import sys
-
-if __name__ == '__main__':
-    sys.argv = ["streamlit", "run", "src/app.py"]
-    sys.exit(stcli.main())
-2. Corrección en config.py
-Se encontró que el archivo validaba la variable GROQ_API_KEY en lugar de GEMINI_API_KEY. Se recomienda modificar esa validación para evitar errores de configuración:
-
-python
-Copiar
-Editar
-if not GEMINI_API_KEY:
-    raise ValueError("Error: GEMINI_API_KEY no está configurada en el archivo .env")
-Contribuciones y Licencia
-Si deseas contribuir a este proyecto, por favor abre un issue o envía un pull request.
-Este proyecto está bajo la licencia MIT.
-
-¡Disfrutá planificando tus viajes y descubrí nuevas aventuras con esta herramienta inteligente!
-
-yaml
-Copiar
-Editar
-
----
