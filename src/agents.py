@@ -70,7 +70,7 @@ agente_planificacion = Agent(
 
 # Función para generar el itinerario
 def generar_itinerario(origen, destinos, fecha_inicio, fecha_fin, preferencias):
-    # Definir tareas CON placeholders para las salidas de las tareas previas
+    #Guardar el numero de dias de viaje para el itinerario
     dias = str((fecha_fin - fecha_inicio).days + 1)
 
     task_actividades = Task(
@@ -138,14 +138,19 @@ Enlace: [Enlace]
 
 Opciones de Transporte [Emoji]:
 Desde [Origen] hasta [Ciudad 1]:
-[Horario de transporte, aerolínea, tren, número de vuelo (si está disponible)]
-
+Empresa: [Nombre de la aerolínea o tren o colectivo]
+Pasaje: [Nº de vuelo o tren (si está disponible)]
+Enlace: [Enlace al sitio web de la busqueda]
 
 Desde [Ciudad1] hasta [Ciudad 2] [Emoji]:
-[Horario de transporte, aerolínea, tren, número de vuelo (si está disponible)]
+Empresa: [Nombre de la aerolínea o tren o colectivo]
+Pasaje: [Nº de vuelo o tren (si está disponible)]
+Enlace: [Enlace al sitio web de la busqueda]
 
 Desde [Ciudad N] hasta [Origen] [Emoji]: 
-[Horario de transporte, aerolínea, tren, número de vuelo (si está disponible)]
+Empresa: [Nombre de la aerolínea o tren o colectivo] 
+Pasaje: [Nº de vuelo o tren (si está disponible)]
+Enlace: [Enlace al sitio web de la busqueda]
 """
 ,
     agent=agente_planificacion,

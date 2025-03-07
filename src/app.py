@@ -18,7 +18,7 @@ with st.form(key="form_planificacion"):
     with col1:
         # Sin valor por defecto para evitar hardcodeo
         origen = st.text_input("📍 Ciudad de origen")
-        destinos_input = st.text_input("🏙️ Destinos (separados por coma)")
+        destinos_input = st.text_input("🏙️ Ciudades de destino")
         destinos = [d.strip() for d in destinos_input.split(",") if d.strip()]
         fecha_inicio = st.date_input("🗓️ Fecha de inicio", value=fecha_inicio_default, min_value=fecha_actual)
     with col2:
@@ -42,9 +42,10 @@ if submit_button:
     elif not preferencias:
         st.error("❌ Por favor, selecciona al menos una preferencia de viaje.")
     else:
-        with st.spinner("Generando tu itinerario..."):
+        with st.spinner("Generando tu itinerario...Esto puede tardar algunos minutos emoji reloj arena "):
             try:
                 itinerario = generar_itinerario(origen, destinos, fecha_inicio, fecha_fin, preferencias)
+                
                 st.success("✅ ¡Itinerario generado exitosamente!")
                 st.markdown("### Tu itinerario personalizado:")
                 st.markdown(itinerario)
