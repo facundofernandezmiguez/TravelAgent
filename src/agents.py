@@ -9,13 +9,13 @@ agente_actividades = Agent(
     goal="Encontrar actividades turísticas basadas en las preferencias del usuario",
     backstory=(
         "Sos un experto en descubrir planes geniales para viajeros. Cuando busques actividades, **enfocate en identificar las principales atracciones de cada ciudad.** " 
-        "No necesitas buscar horarios detallados, precios o información de transporte en esta etapa. " 
-        "Simplemente genera una lista de las actividades más populares por ciudad."
+        "No necesitas buscar horarios detallados, precios o información de transporte en esta etapa. "         
+        "No hagas sugerencias vagas, como 'Cena en un restaurante típico'. Si vas a recomendar un lugar para comer, o una actividad, debes explicitar el nombre del lugar."
     ),
     tools=[BuscadorWeb()],
     llm=llm,
     verbose=True,
-    allow_delegation= False
+    allow_delegation= True
 )
 
 agente_vuelos = Agent(
@@ -33,7 +33,7 @@ agente_vuelos = Agent(
     tools=[BuscadorWeb()],
     llm=llm,
     verbose=True,
-    allow_delegation= False
+    allow_delegation= True
 )
 agente_hoteles = Agent(
     role="Buscador de Hoteles",
@@ -47,14 +47,14 @@ agente_hoteles = Agent(
     tools=[BuscadorWeb()],
     llm=llm,
     verbose=True,
-    allow_delegation= False
+    allow_delegation= True
 )
 
 agente_planificacion = Agent(
     role="Planificador de Itinerarios",
-    goal="Crear un itinerario de viaje **DETALLADO, ATRACTIVO y en ESPAÑOL ARGENTINO con emojis.** **UTILIZANDO LA INFORMACIÓN PROPORCIONADA POR LOS OTROS AGENTES. NO REDUNDAR EN BÚSQUEDAS INNECESARIAS.**", 
+    goal="Crear un itinerario de viaje de {dias} días **DETALLADO, ATRACTIVO y en ESPAÑOL ARGENTINO con emojis.** **UTILIZANDO LA INFORMACIÓN PROPORCIONADA POR LOS OTROS AGENTES. NO REDUNDAR EN BÚSQUEDAS INNECESARIAS.**", 
     backstory=(
-        "Sos el Manager y Planificador de Viajes principal. Tu función es COORDINAR a los agentes Buscador de Actividades, Buscador de Vuelos y Buscador de Hoteles. " 
+        "Sos el Manager y Planificador de Viajes principal. Tu función es COORDINAR a los agentes Buscador de Actividades, Buscador de Transportes y Buscador de Hoteles. " 
         "Recibís la información de ellos y la USÁS para crear un itinerario detallado y atractivo. " 
         "Una vez que recibas informacion de vuelos, hoteles y actividades, presenta los datos de forma ordenada y detiene la busqueda inmediatamente"
         "**NO realizás búsquedas de actividades directamente. Tu foco es PLANIFICAR y PRESENTAR la información en un itinerario genial.**"
@@ -76,6 +76,7 @@ def generar_itinerario(origen, destinos, fecha_inicio, fecha_fin, preferencias):
     task_actividades = Task(
         description=f"""Basado en las preferencias del usuario: '{preferencias}', **busca las actividades turísticas MÁS POPULARES y RECONOCIDAS** en las siguientes ciudades: {destinos}.
     **Genera una lista CONCISA de las actividades MÁS POPULARES por ciudad.**
+    **Debes tener en cuenta que el usuario está buscando actividades para un viaje de {dias} días, debes buscar una cantidad de actividades acorde a la cantidad de dias.**
     **NO incluyas detalles como horarios, precios, requisitos o información de transporte.**
     Simplemente enumera las atracciones principales que un turista debería considerar visitar en cada ciudad.""",
         agent=agente_actividades,
@@ -83,8 +84,9 @@ def generar_itinerario(origen, destinos, fecha_inicio, fecha_fin, preferencias):
     )
 
     task_vuelos = Task(
-    description=f"""Encuentra **UNA ÚNICA OPCIÓN** de vuelo de ida y vuelta desde {origen} a uno de los destinos para el {fecha_inicio} y {fecha_fin}. También encuentra una opcion de transporte de viaje entre ciudades de destino según itinerario: {destinos}.
-    **BUSCA LA OPCIÓN MÁS RAZONABLE EN TÉRMINOS DE PRECIO Y HORARIO GENERAL, PERO NO NECESITAS HACER UNA BÚSQUEDA EXHAUSTIVA NI COMPARAR DETALLADAMENTE.**
+    description=f"""Encuentra **UNA ÚNICA OPCIÓN** de vuelo de ida desde {origen} a {destinos[0]}, y de vuelta desde {destinos[-1]} a {origen} (si no está disponible por alguna razón, entonces encuentra una forma de volver a {destinos[0]} y de ahí a {origen}) para el {fecha_inicio} y {fecha_fin}. También encuentra una opcion de transporte de viaje entre ciudades de destino según itinerario: {destinos}.
+    *Para vuelos, busca en https://skyscanner.net y para trenes busca en https://www.thetrainline.com* 
+    Encuentra el horario del vuelo, pasaje, aerolinea, etc. No inventes datos si no lo encuentras.
     **Proporciona el enlace a un sitio donde el usuario pueda ver las opciones de vuelos y tren.**
     Presenta la información de manera concisa: aerolínea, número de vuelo (si está disponible), horarios aproximados de salida y llegada, y precio estimado (si lo encuentras fácilmente).""",
     agent=agente_vuelos,
@@ -101,9 +103,16 @@ def generar_itinerario(origen, destinos, fecha_inicio, fecha_fin, preferencias):
     )
 
     task_planificacion_itinerario = Task(
-        description=f"""Utilizando la información recopilada sobre actividades, vuelos y hoteles, **crea un itinerario de viaje DETALLADO DÍA POR DÍA de {dias} días, escrito en ESPAÑOL ARGENTINO con EMOJIS.**
-        **Para cada día, escribe un PÁRRAFO CORTO Y DESCRIPTIVO** que inspire al viajero, mencionando las actividades principales y dando sugerencias atractivas.
-        **NO HAGAS SOLO UNA LISTA, SINO UN TEXTO ENGANCHADOR.**
+        description=f"""Tu tarea principal es planificar un itinerario de viaje DETALLADO DÍA POR DÍA de {dias} días, escrito en ESPAÑOL ARGENTINO con EMOJIS.
+
+        **INSTRUCCIONES DE DELEGACIÓN:**
+
+        1. **Primero, DELEGA la tarea de encontrar vuelos** (ida y vuelta y entre ciudades) al agente 'Buscador de Transportes'. Asegúrate de proporcionarle toda la información necesaria: origen, destinos, fechas de viaje, y los sitios web de búsqueda (Skyscanner y TheTrainline).
+        2. **Luego, DELEGA la tarea de buscar actividades turísticas** en las ciudades de destino al agente 'Buscador de Actividades'.  Indícale las ciudades y las preferencias del usuario para las actividades (ej: '{preferencias}').
+        3. **Finalmente, DELEGA la tarea de encontrar opciones de hoteles** (lujosos y económicos) en cada ciudad de destino al agente 'Buscador de Hoteles'.
+
+        **Una vez que hayas recibido la información de vuelos, actividades y hoteles de los agentes delegados, procede a CREAR el itinerario detallado.**
+        
         **Formato de Itinerario Deseado:**
         Itinerario de {dias} Días: [Ciudad 1] y [Ciudad 2]
 
@@ -140,16 +149,19 @@ Opciones de Transporte [Emoji]:
 Desde [Origen] hasta [Ciudad 1]:
 Empresa: [Nombre de la aerolínea o tren o colectivo]
 Pasaje: [Nº de vuelo o tren (si está disponible)]
+Horario: [Horario de salida]
 Enlace: [Enlace al sitio web de la busqueda]
 
 Desde [Ciudad1] hasta [Ciudad 2] [Emoji]:
 Empresa: [Nombre de la aerolínea o tren o colectivo]
 Pasaje: [Nº de vuelo o tren (si está disponible)]
+Horario: [Horario de salida]
 Enlace: [Enlace al sitio web de la busqueda]
 
 Desde [Ciudad N] hasta [Origen] [Emoji]: 
 Empresa: [Nombre de la aerolínea o tren o colectivo] 
 Pasaje: [Nº de vuelo o tren (si está disponible)]
+Horario: [Horario de salida]
 Enlace: [Enlace al sitio web de la busqueda]
 """
 ,
