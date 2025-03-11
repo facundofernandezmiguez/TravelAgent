@@ -1,4 +1,4 @@
-# Planificador de Viajes Inteligente
+# Travel Agent: planificador de viajes con IA 🚀 
 
 Esta aplicación utiliza inteligencia artificial para generar itinerarios de viaje personalizados. Se basa en el framework [CrewAI](https://github.com/crewai-ai/crewai) y utiliza agentes especializados para buscar actividades turísticas, vuelos y hoteles. La aplicación presenta el itinerario generado en **Streamlit**, con descripciones atractivas en español argentino y emojis.
 
@@ -22,7 +22,7 @@ Esta aplicación utiliza inteligencia artificial para generar itinerarios de via
 
 - **Interfaz Web con Streamlit:** Permite ingresar ciudad de origen, destinos, fechas y preferencias para generar el itinerario.
 
-- **Modelo de IA Potente:** La aplicación utiliza el modelo Groq qwen-qwq-32b para obtener resultados óptimos.
+- **Modelo de IA:** La aplicación utiliza el modelo qwen-qwq-32b servido a través de Groq.
 
 - **Manejo de Límites de Tasa:** Implementa estrategias para manejar los límites de tasa (rate limits) en las APIs utilizadas.
 
@@ -49,8 +49,8 @@ project/
 1. **Clonar el repositorio:**
 
    ```bash
-   git clone https://github.com/tu_usuario/planificador-viajes-inteligente.git
-   cd planificador-viajes-inteligente
+   git clone https://github.com/facundofernandezmiguez/TravelAgent.git
+   cd TravelAgent
    ```
 
 2. **Crear y activar un entorno virtual (opcional, pero recomendado):**
@@ -83,8 +83,8 @@ project/
    > **Nota:** Ambas claves API son necesarias para que la aplicación funcione correctamente.
 
 2. **Obtener claves API:**
-   - **GROQ_API_KEY**: Regístrate en [groq.com](https://groq.com)
-   - **SERPER_API_KEY**: Regístrate en [serper.dev](https://serper.dev)
+   - **GROQ_API_KEY**: Registrate en [groq.com](https://groq.com)
+   - **SERPER_API_KEY**: Registrate en [serper.dev](https://serper.dev)
 
 ## Uso
 
