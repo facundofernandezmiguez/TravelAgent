@@ -3,7 +3,7 @@
 Esta aplicación utiliza inteligencia artificial para generar itinerarios de viaje personalizados. Luego de completar un breve formulario con lugar de origen, destinos, fechas y preferencias, la aplicación genera un itinerario detallado y atractivo.
 
 Stack tecnológico utilizado:
-- LLM utilizado: Qwen QWQ-32B servido a través de **Groq**
+- LLM utilizado: Qwen QWQ-32B servido a través de [Groq](https://groq.com/)
 - Orquestación de agentes: Se basa en el framework [CrewAI](https://www.crewai.com/) y utiliza agentes especializados para buscar actividades turísticas, vuelos y hoteles.
 - Tool de búsqueda web: Google search a través de [SERPER](https://serper.dev/)
 - Frontend: **Streamlit**
