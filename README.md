@@ -1,4 +1,4 @@
-# Travel Agent: planificador de viajes con IA 🚀 🌍
+# Planificador de viajes con IA 🚀 🌍
 
 Esta aplicación utiliza inteligencia artificial para generar itinerarios de viaje personalizados. Se basa en el framework [CrewAI](https://github.com/crewai-ai/crewai) y utiliza agentes especializados para buscar actividades turísticas, vuelos y hoteles. La aplicación presenta el itinerario generado en **Streamlit**, con descripciones atractivas en español argentino y emojis.
 
