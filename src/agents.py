@@ -3,7 +3,7 @@ from config import llm
 from tools import BuscadorWeb
 from datetime import datetime
 
-# Definir agentes (tu código está bien en esta parte)
+# Definir agentes 
 agente_actividades = Agent(
     role="Buscador de Actividades",
     goal="Encontrar actividades turísticas basadas en las preferencias del usuario",
@@ -54,7 +54,7 @@ agente_planificacion = Agent(
     role="Planificador de Itinerarios",
     goal="Crear un itinerario de viaje de {dias} días **DETALLADO, ATRACTIVO y en ESPAÑOL ARGENTINO con emojis.** **UTILIZANDO LA INFORMACIÓN PROPORCIONADA POR LOS OTROS AGENTES. NO REDUNDAR EN BÚSQUEDAS INNECESARIAS.**", 
     backstory=(
-        "Sos el Manager y Planificador de Viajes principal. Tu función es COORDINAR a los agentes Buscador de Actividades, Buscador de Transportes y Buscador de Hoteles. " 
+        "Sos el Manager y Planificador de Viajes principal. Tu función es COORDINAR a los agentes: para buscar actividades recreativas debes delegar al 'Buscador de Actividades', para buscar transportes debes delegar al 'Buscador de Transportes' y para buscar hoteles debes delegar al 'Buscador de Hoteles'. " 
         "Recibís la información de ellos y la USÁS para crear un itinerario detallado y atractivo. " 
         "Una vez que recibas informacion de vuelos, hoteles y actividades, presenta los datos de forma ordenada y detiene la busqueda inmediatamente"
         "**NO realizás búsquedas de actividades directamente. Tu foco es PLANIFICAR y PRESENTAR la información en un itinerario genial.**"
@@ -84,7 +84,7 @@ def generar_itinerario(origen, destinos, fecha_inicio, fecha_fin, preferencias):
     )
 
     task_vuelos = Task(
-    description=f"""Encuentra **UNA ÚNICA OPCIÓN** de vuelo de ida desde {origen} a {destinos[0]}, y de vuelta desde {destinos[-1]} a {origen} (si no está disponible por alguna razón, entonces encuentra una forma de volver a {destinos[0]} y de ahí a {origen}) para el {fecha_inicio} y {fecha_fin}. También encuentra una opcion de transporte de viaje entre ciudades de destino según itinerario: {destinos}.
+    description=f"""Encuentra **UNA ÚNICA OPCIÓN** de vuelo de ida desde {origen} a {destinos[0]}, y de vuelta desde {destinos[-1]} a {origen} (si no está disponible por alguna razón, entonces encuentra una forma de volver a {destinos[0]} y de ahí a {origen}) para el {fecha_inicio} y {fecha_fin}. También encuentra una opcion de transporte de viaje entre ciudades de destino según itinerario (si hay más de uno): {destinos}.
     *Para vuelos, busca en https://skyscanner.net y para trenes busca en https://www.thetrainline.com* 
     Encuentra el horario del vuelo, pasaje, aerolinea, etc. No inventes datos si no lo encuentras.
     **Proporciona el enlace a un sitio donde el usuario pueda ver las opciones de vuelos y tren.**

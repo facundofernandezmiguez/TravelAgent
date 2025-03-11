@@ -1,8 +1,6 @@
 # Planificador de Viajes Inteligente
 
-Esta aplicación utiliza inteligencia artificial para generar itinerarios de viaje personalizados. Se basa en el framework [CrewAI](https://github.com/crewai-ai/crewai) y utiliza agentes especializados para buscar actividades turísticas, vuelos y hoteles. Además, la aplicación presenta el itinerario generado en **Streamlit**, con descripciones atractivas en español argentino y emojis.
-
-
+Esta aplicación utiliza inteligencia artificial para generar itinerarios de viaje personalizados. Se basa en el framework [CrewAI](https://github.com/crewai-ai/crewai) y utiliza agentes especializados para buscar actividades turísticas, vuelos y hoteles. La aplicación presenta el itinerario generado en **Streamlit**, con descripciones atractivas en español argentino y emojis.
 
 ## Tabla de Contenidos
 
@@ -11,10 +9,8 @@ Esta aplicación utiliza inteligencia artificial para generar itinerarios de via
 - [Instalación](#instalación)
 - [Configuración](#configuración)
 - [Uso](#uso)
-- [Correcciones Realizadas](#correcciones-realizadas)
+- [Mejoras Implementadas](#mejoras-implementadas)
 - [Contribuciones y Licencia](#contribuciones-y-licencia)
-
-
 
 ## Características
 
@@ -26,22 +22,27 @@ Esta aplicación utiliza inteligencia artificial para generar itinerarios de via
 
 - **Interfaz Web con Streamlit:** Permite ingresar ciudad de origen, destinos, fechas y preferencias para generar el itinerario.
 
-- **Búsqueda en la Web:** Utiliza la herramienta `BuscadorWeb` para obtener resultados rápidos sin búsquedas exhaustivas.
+- **Modelo de IA Potente:** La aplicación utiliza el modelo Groq qwen-qwq-32b para obtener resultados óptimos.
+
+- **Manejo de Límites de Tasa:** Implementa estrategias para manejar los límites de tasa (rate limits) en las APIs utilizadas.
 
 ---
 
 ## Estructura del Proyecto
 
-project/ │ 
-├── src/ │ 
-    ├── agents.py # Definición de agentes, tareas y función para generar el itinerario. │ 
-    ├── tools.py # Herramienta para realizar búsquedas en la web (utiliza SERPER_API_KEY). │ 
-    ├── config.py # Configuración del LLM y carga de claves API desde el archivo .env. 
-    ├── app.py # Aplicación Streamlit que interactúa con el usuario. │ 
-├── requirements.txt # Dependencias del proyecto. 
-└── app.py # Archivo de entrada para ejecutar la aplicación.
-
-
+```
+project/
+│ 
+├── src/
+│   ├── agents.py    # Definición de agentes, tareas y función para generar el itinerario.
+│   ├── tools.py     # Herramienta para realizar búsquedas en la web (utiliza SERPER_API_KEY).
+│   ├── config.py    # Configuración del modelo LLM y carga de claves API desde el archivo .env.
+│   ├── app.py       # Aplicación Streamlit que interactúa con el usuario.
+│ 
+├── requirements.txt # Dependencias del proyecto.
+├── app.py           # Archivo de entrada para ejecutar la aplicación.
+└── .env             # Archivo para almacenar las claves API (no incluido en el repositorio).
+```
 
 ## Instalación
 
@@ -50,52 +51,80 @@ project/ │
    ```bash
    git clone https://github.com/tu_usuario/planificador-viajes-inteligente.git
    cd planificador-viajes-inteligente
-Crear y activar un entorno virtual (opcional, pero recomendado):
+   ```
 
-python -m venv venv
-# En Windows:
-venv\Scripts\activate
-# En macOS/Linux:
-source venv/bin/activate
-Instalar las dependencias:
+2. **Crear y activar un entorno virtual (opcional, pero recomendado):**
 
-pip install -r requirements.txt
-Configurar las variables de entorno:
+   ```bash
+   python -m venv venv
+   
+   # En Windows:
+   venv\Scripts\activate
+   
+   # En macOS/Linux:
+   source venv/bin/activate
+   ```
 
-Crea un archivo .env en la raíz del proyecto y agrega las siguientes claves:
+3. **Instalar las dependencias:**
 
-dotenv
-Copiar
-Editar
-SERPER_API_KEY=tu_serper_api_key
-GEMINI_API_KEY=tu_gemini_api_key
-Nota: En el archivo config.py se detecta un error que valida la variable GROQ_API_KEY en lugar de GEMINI_API_KEY. Asegurate de reemplazar la condición:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-python
-Copiar
-Editar
-if not GROQ_API_KEY:
-    raise ValueError("Error: GROQ_API_KEY no está configurada en el archivo .env")
-por:
+## Configuración
 
+1. **Crear archivo `.env` en la raíz del proyecto y agregar las siguientes claves:**
 
-if not GEMINI_API_KEY:
-    raise ValueError("Error: GEMINI_API_KEY no está configurada en el archivo .env")
-Uso
-Ejecutar la Aplicación con Streamlit
+   ```
+   GROQ_API_KEY=tu_groq_api_key
+   SERPER_API_KEY=tu_serper_api_key
+   ```
+
+   > **Nota:** Ambas claves API son necesarias para que la aplicación funcione correctamente.
+
+2. **Obtener claves API:**
+   - **GROQ_API_KEY**: Regístrate en [groq.com](https://groq.com)
+   - **SERPER_API_KEY**: Regístrate en [serper.dev](https://serper.dev)
+
+## Uso
+
+### Ejecutar la Aplicación
+
 Puedes iniciar la aplicación de dos formas:
 
-Directamente desde el directorio src:
+1. **Directamente desde el directorio raíz:**
 
-bash
-Copiar
-Editar
-streamlit run src/app.py
-Ejecutando el archivo app.py que se encuentra en la raíz (archivo corregido):
+   ```bash
+   python app.py
+   ```
 
-bash
-Copiar
-Editar
-python app.py
-Este archivo está configurado para invocar Streamlit y correr la aplicación ubicada en src/app.py.
+2. **O ejecutando directamente con Streamlit:**
 
+   ```bash
+   streamlit run src/app.py
+   ```
+
+### Planificar un Viaje
+
+1. Ingresa la ciudad de origen y los destinos (separados por comas)
+2. Selecciona las fechas de inicio y regreso
+3. Elige tus preferencias de viaje
+4. Haz clic en "🚀 Generar Itinerario"
+5. Espera mientras los agentes de IA trabajan (esto puede tomar varios minutos)
+6. Revisa tu itinerario personalizado
+
+## Mejoras Implementadas
+
+- **Solución a los problemas de fecha**: Se ha implementado un sistema de manejo de estado para garantizar que la fecha de regreso siempre sea posterior a la fecha de inicio, incluso después de recargar la página.
+
+- **Optimización para límites de tasa (rate limits)**: La aplicación está configurada para manejar eficientemente las solicitudes a la API de Groq.
+
+- **Simplificación de búsquedas**: Los agentes están configurados para realizar búsquedas eficientes y específicas, evitando consultas redundantes.
+
+## Contribuciones y Licencia
+
+Este proyecto está disponible para uso personal y educativo. Si deseas contribuir, puedes abrir un issue o enviar un pull request.
+
+---
+
+ 2023-2025 Facundo Fernandez Miguez. Todos los derechos reservados.
