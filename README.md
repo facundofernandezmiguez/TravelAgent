@@ -3,10 +3,10 @@
 Esta aplicación utiliza inteligencia artificial para generar itinerarios de viaje personalizados. Luego de completar un breve formulario con lugar de origen, destinos, fechas y preferencias, la aplicación genera un itinerario detallado y atractivo.
 
 Stack tecnológico utilizado:
-- LLM utilizado: Qwen QWQ-32B servido a través de [Groq](https://groq.com/)
-- Orquestación de agentes: Se basa en el framework [CrewAI](https://www.crewai.com/) y utiliza agentes especializados para buscar actividades turísticas, vuelos y hoteles.
-- Tool de búsqueda web: Google search a través de [SERPER](https://serper.dev/)
-- Frontend: **Streamlit**
+- **LLM utilizado:** Qwen QWQ-32B servido a través de [Groq](https://groq.com/)
+- **Orquestación de agentes:** Se basa en el framework [CrewAI](https://www.crewai.com/) y utiliza agentes especializados para buscar actividades turísticas, vuelos y hoteles.
+- **Tool de búsqueda web:** Google search a través de [SERPER](https://serper.dev/)
+- **Frontend:** Streamlit
 
 ## Tabla de Contenidos
 
@@ -26,11 +26,6 @@ Stack tecnológico utilizado:
   - **Buscador de Hoteles:** Investiga dos opciones de alojamiento (lujosa y económica) por ciudad.  
   - **Planificador de Itinerarios:** Coordina la información de los otros agentes para generar un itinerario detallado y atractivo.
 
-- **Interfaz Web con Streamlit:** Permite ingresar ciudad de origen, destinos, fechas y preferencias para generar el itinerario.
-
-- **Modelo de IA:** La aplicación utiliza el modelo qwen-qwq-32b servido a través de Groq.
-
-- **Manejo de Límites de Tasa:** Implementa estrategias para manejar los límites de tasa (rate limits) en las APIs utilizadas.
 
 ---
 
@@ -96,7 +91,7 @@ project/
 
 ### Ejecutar la Aplicación
 
-Puedes iniciar la aplicación de dos formas:
+Podés iniciar la aplicación de dos formas:
 
 1. **Directamente desde el directorio raíz:**
 
@@ -112,25 +107,11 @@ Puedes iniciar la aplicación de dos formas:
 
 ### Planificar un Viaje
 
-1. Ingresa la ciudad de origen y los destinos (separados por comas)
-2. Selecciona las fechas de inicio y regreso
-3. Elige tus preferencias de viaje
-4. Haz clic en "🚀 Generar Itinerario"
-5. Espera mientras los agentes de IA trabajan (esto puede tomar varios minutos)
-6. Revisa tu itinerario personalizado
+1. Ingresá la ciudad de origen y los destinos (separados por comas)
+2. Seleccioná las fechas de inicio y regreso
+3. Agregá tus preferencias de viaje
+4. Hacé clic en "🚀 Generar Itinerario"
+5. Esperá mientras los agentes de IA trabajan (esto puede tomar unos minutos)
+6. Listo! Revisá tu itinerario personalizado
 
-## Mejoras Implementadas
 
-- **Solución a los problemas de fecha**: Se ha implementado un sistema de manejo de estado para garantizar que la fecha de regreso siempre sea posterior a la fecha de inicio, incluso después de recargar la página.
-
-- **Optimización para límites de tasa (rate limits)**: La aplicación está configurada para manejar eficientemente las solicitudes a la API de Groq.
-
-- **Simplificación de búsquedas**: Los agentes están configurados para realizar búsquedas eficientes y específicas, evitando consultas redundantes.
-
-## Contribuciones y Licencia
-
-Este proyecto está disponible para uso personal y educativo. Si deseas contribuir, puedes abrir un issue o enviar un pull request.
-
----
-
- 2023-2025 Facundo Fernandez Miguez. Todos los derechos reservados.
