@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from agents import generar_itinerario 
 
 # Título de la aplicación
-st.title("🌍 Planificador de Viajes Inteligente")
+st.title("🌍 Planificador de Viajes con IA 🚀")
 st.markdown("""
 Esta aplicación te ayuda a planificar tu próximo viaje utilizando inteligencia artificial.
 Ingresa tus preferencias y generaremos un itinerario personalizado.
@@ -42,8 +42,9 @@ with st.form(key="form_planificacion"):
             key="fecha_fin_input"
         )
         preferencias = st.multiselect("🌟 Preferencias de viaje", 
-                                      ["Cultura", "Gastronomía", "Relax", "Naturaleza", "Historia", "Arte", "Compras", "Vida nocturna"],
-                                      default=[])
+                                      ["Gastronomía", "Relax", "Naturaleza", "Historia", "Arte", "Compras", "Vida nocturna"],
+                                      default=[],
+                                      max_selections=2)
     submit_button = st.form_submit_button(label="🚀 Generar Itinerario")
 
 # Actualizamos los valores en el estado de sesión después de enviar el formulario
@@ -59,16 +60,18 @@ if submit_button:
     # Validaciones: se requiere que se ingrese la ciudad de origen, al menos un destino,
     # que la fecha de regreso sea posterior a la de inicio y que se seleccionen preferencias.
     if not origen:
-        st.error("❌ Por favor, ingresa la ciudad de origen.")
+        st.error("❌ Por favor, ingresá la ciudad de origen.")
     elif not destinos:
-        st.error("❌ Por favor, ingresa al menos un destino.")
+        st.error("❌ Por favor, ingresá al menos un destino.")
     elif fecha_fin <= fecha_inicio:
-        st.error("❌ Debes seleccionar una fecha de regreso posterior a la fecha de inicio.")
+        st.error("❌ Debés seleccionar una fecha de regreso posterior a la fecha de inicio.")
         # Corregimos automáticamente la fecha
         fecha_fin = fecha_inicio + timedelta(days=1)
         st.session_state.fecha_fin = fecha_fin
     elif not preferencias:
         st.error("❌ Por favor, selecciona al menos una preferencia de viaje.")
+    elif len(preferencias) > 2:
+        st.error("❌ Por favor, selecciona 2 preferencias como máximo.")
     else:
         with st.spinner("Generando tu itinerario... Esto puede tardar algunos minutos ⏳"):
             try:

@@ -20,11 +20,11 @@ agente_actividades = Agent(
 
 agente_vuelos = Agent(
     role="Buscador de Transportes",
-    goal="Encontrar vuelos para los traslados especificados. **Encontrar UNA ÚNICA OPCIÓN para cada traslado (ida y vuelta y entre ciudades).** Si es un vuelo, debes explicitar el nombre del vuelo.", 
+    goal="Encontrar vuelos para los traslados especificados. **Encontrar una opción para cada traslado (ida y vuelta y entre ciudades).** Si es un vuelo, debes explicitar el nombre del vuelo.", 
     backstory=(
-        "Sos un experto en encontrar vuelos de manera **rápida y eficiente**. " 
+        "Sos un experto en encontrar vuelos de manera **rápida y eficiente**. **Los vuelos/trenes deben ser reales, no debes inventar informacion.** " 
         "Tu objetivo es encontrar **UNA SOLA OPCIÓN CONVENIENTE** para cada traslado necesario (ida y vuelta y entre ciudades). " 
-        "**Realizá la MENOR CANTIDAD DE BÚSQUEDAS POSIBLES.** " 
+        "Si no encuentras un vuelo directo, debes buscar un vuelo que te permita llegar al destino, aunque contenga escalas." 
         "Una vez que encuentres **UNA OPCIÓN RAZONABLE** para cada vuelo, **DETENÉ la búsqueda inmediatamente.** " 
         "**NO BUSQUES OPCIONES ADICIONALES, NO COMPARES PRECIOS EXTENSAMENTE, NO BUSQUES HORARIOS DETALLADOS.** " 
         "Simplemente encontrá una opción que parezca adecuada en términos de aerolínea y horario general, y pasá al siguiente traslado." 
@@ -84,9 +84,10 @@ def generar_itinerario(origen, destinos, fecha_inicio, fecha_fin, preferencias):
     )
 
     task_vuelos = Task(
-    description=f"""Encuentra **UNA ÚNICA OPCIÓN** de vuelo de ida desde {origen} a {destinos[0]}, y de vuelta desde {destinos[-1]} a {origen} (si no está disponible por alguna razón, entonces encuentra una forma de volver a {destinos[0]} y de ahí a {origen}) para el {fecha_inicio} y {fecha_fin}. También encuentra una opcion de transporte de viaje entre ciudades de destino según itinerario (si hay más de uno): {destinos}.
+    description=f"""Encuentra una opcion de vuelo de ida desde {origen} a {destinos[0]}, y de vuelta desde {destinos[-1]} a {origen} (si no está disponible por alguna razón, entonces encuentra una forma de volver a {destinos[0]} y de ahí a {origen}) para el {fecha_inicio} y {fecha_fin}. También encuentra una opcion de transporte de viaje entre ciudades de destino según itinerario (si hay más de uno): {destinos}.
+    Si no encuentras un vuelo directo, debes buscar un vuelo que te permita llegar al destino, aunque contenga escalas.
     *Para vuelos, busca en https://skyscanner.net y para trenes busca en https://www.thetrainline.com* 
-    Encuentra el horario del vuelo, pasaje, aerolinea, etc. No inventes datos si no lo encuentras.
+    Encuentra el horario del vuelo, pasaje, aerolinea, etc. **Los vuelos/trenes deben ser reales, no debes inventar informacion.** 
     **Proporciona el enlace a un sitio donde el usuario pueda ver las opciones de vuelos y tren.**
     Presenta la información de manera concisa: aerolínea, número de vuelo (si está disponible), horarios aproximados de salida y llegada, y precio estimado (si lo encuentras fácilmente).""",
     agent=agente_vuelos,
