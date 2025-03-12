@@ -6,6 +6,7 @@ Stack tecnológico utilizado:
 - **LLM utilizado:** Qwen QWQ-32B servido a través de [Groq](https://groq.com/)
 - **Orquestación de agentes:** Se basa en el framework [CrewAI](https://www.crewai.com/) y utiliza agentes especializados para buscar actividades turísticas, vuelos y hoteles.
 - **Tool de búsqueda web:** Google search a través de [SERPER](https://serper.dev/)
+- **APIs de vuelos:** [Amadeus](https://developers.amadeus.com/)
 - **Frontend:** Streamlit
 
 ## Tabla de Contenidos
@@ -36,7 +37,7 @@ project/
 │ 
 ├── src/
 │   ├── agents.py    # Definición de agentes, tareas y función para generar el itinerario.
-│   ├── tools.py     # Herramienta para realizar búsquedas en la web (utiliza SERPER_API_KEY).
+│   ├── tools.py     # Herramienta para realizar búsquedas en la web (utiliza SERPER_API_KEY y AMADEUS_API_KEY).
 │   ├── config.py    # Configuración del modelo LLM y carga de claves API desde el archivo .env.
 │   ├── app.py       # Aplicación Streamlit que interactúa con el usuario.
 │ 
@@ -79,6 +80,8 @@ project/
    ```
    GROQ_API_KEY=tu_groq_api_key
    SERPER_API_KEY=tu_serper_api_key
+   AMADEUS_API_KEY = "tu_api_key_amadeus"
+   AMADEUS_API_SECRET="tu_api_key_amadeus_secret"
    ```
 
    > **Nota:** Ambas claves API son necesarias para que la aplicación funcione correctamente.
