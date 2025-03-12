@@ -89,7 +89,7 @@ project/
 2. **Obtener claves API:**
    - **GROQ_API_KEY**: Registrate en [groq.com](https://groq.com)
    - **SERPER_API_KEY**: Registrate en [serper.dev](https://serper.dev)
-   - **AMADEUS_API_KEY** y **AMADEUS_API_SECRET**: Registrate en [Amadeus](https://developers.amadeus.com/
+   - **AMADEUS_API_KEY** y **AMADEUS_API_SECRET**: Registrate en [Amadeus](https://developers.amadeus.com/)
 
 ## Uso
 
