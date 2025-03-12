@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from agents import generar_itinerario 
 
 # Título de la aplicación
-st.title("🌍 Planificador de Viajes con IA 🚀")
+st.title("🌍 Planificador de Viajes con IA ✈️")
 st.markdown("""
 Esta aplicación te ayuda a planificar tu próximo viaje utilizando inteligencia artificial.
 Ingresa tus preferencias y generaremos un itinerario personalizado.
