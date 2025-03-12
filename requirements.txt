@@ -3,3 +3,4 @@ streamlit
 requests
 python-dotenv
 litellm==1.60.2
+amadeus
