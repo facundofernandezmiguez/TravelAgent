@@ -156,21 +156,21 @@ Opciones de Transporte [Emoji]:
 Desde [Origen] hasta [Ciudad 1]:
 Empresa: [Nombre de la aerolínea o tren o colectivo]
 Pasaje: [Nº de vuelo o tren (si está disponible)]
-Horario: [Horario de salida]
+Horario: [Horario de salida] - [Horario de llegada]
 Precio: [Precio del vuelo]
 Enlace: [Enlace al sitio web de la busqueda]
 
 Desde [Ciudad1] hasta [Ciudad 2] [Emoji]:
 Empresa: [Nombre de la aerolínea o tren o colectivo]
 Pasaje: [Nº de vuelo o tren (si está disponible)]
-Horario: [Horario de salida]
+Horario: [Horario de salida] - [Horario de llegada]
 Precio: [Precio del vuelo]
 Enlace: [Enlace al sitio web de la busqueda]
 
 Desde [Ciudad N] hasta [Origen] [Emoji]: 
 Empresa: [Nombre de la aerolínea o tren o colectivo] 
 Pasaje: [Nº de vuelo o tren (si está disponible)]
-Horario: [Horario de salida]
+Horario: [Horario de salida] - [Horario de llegada]
 Precio: [Precio del vuelo]
 Enlace: [Enlace al sitio web de la busqueda]
 """
