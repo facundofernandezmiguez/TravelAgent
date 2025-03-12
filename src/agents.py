@@ -119,11 +119,11 @@ def generar_itinerario(origen, destinos, fecha_inicio, fecha_fin, preferencias):
         3. **Finalmente, DELEGA la tarea de encontrar opciones de hoteles** (lujosos y económicos) en cada ciudad de destino al agente 'Buscador de Hoteles'.
 
         **Una vez que hayas recibido la información de vuelos, actividades y hoteles de los agentes delegados, procede a CREAR el itinerario detallado.**
-        
+        ES FUNDAMENTAL QUE RESPETES EL ITINERARIO DESEADO:
         **Formato de Itinerario Deseado:**
         Itinerario de {dias} Días: [Ciudad 1] y [Ciudad 2]
 
-Día 1: [Fecha dia 1] - [Ciudad 1]
+**Día 1: [Fecha dia 1] - [Ciudad 1]**
 
 Mañana:
 Actividad: [Descripción de la actividad] [Emoji].
@@ -135,10 +135,10 @@ Noche:
 Actividad: [Descripción de la actividad] [Emoji].
 Cena: [Sugerencia de cena, si aplica] [Emoji].
 
-Día 2: [Fecha dia 2] - [Ciudad 2]
+**Día 2: [Fecha dia 2] - [Ciudad 2]**
 ... (y así sucesivamente para cada día)
 
-Opciones de Alojamiento [Emoji]:
+**Opciones de Alojamiento 🏨:**
 
 [Ciudad 1]:
 [Tipo de Hotel - Lujo/Económico]:
@@ -152,7 +152,8 @@ Enlace: [Enlace]
 Dirección: [Dirección]
 Enlace: [Enlace]
 
-Opciones de Transporte [Emoji]:
+**Opciones de Transporte ✈️:**
+
 Desde [Origen] hasta [Ciudad 1]:
 Empresa: [Nombre de la aerolínea o tren o colectivo]
 Pasaje: [Nº de vuelo o tren (si está disponible)]
