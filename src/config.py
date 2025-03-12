@@ -1,23 +1,17 @@
-import os
+from crewai import LLM
 from dotenv import load_dotenv
-from crewai.agent import LLM
+import os
 
-# Cargar variables de entorno desde .env
+# Cargar variables de entorno
 load_dotenv()
 
-# Obtener claves API
+# Obtener claves de API
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 SERPER_API_KEY = os.getenv("SERPER_API_KEY")
+AMADEUS_API_KEY = os.getenv("AMADEUS_API_KEY")
+AMADEUS_API_SECRET = os.getenv("AMADEUS_API_SECRET")
 
-
-# Verificar que las claves API necesarias estén cargadas
-if not GROQ_API_KEY:
-    raise ValueError("Error: GROQ_API_KEY no está configurada en el archivo .env")
-
-if not SERPER_API_KEY:
-    raise ValueError("Error: SERPER_API_KEY no está configurada en el archivo .env")    
-
-
+# Configurar LLM
 llm = LLM(
     model="groq/qwen-qwq-32b",
     temperature=0.7,

@@ -44,7 +44,7 @@ with st.form(key="form_planificacion"):
         preferencias = st.multiselect("🌟 Preferencias de viaje", 
                                       ["Gastronomía", "Relax", "Naturaleza", "Historia", "Arte", "Compras", "Vida nocturna"],
                                       default=[],
-                                      max_selections=2)
+                                      max_selections=3)
     submit_button = st.form_submit_button(label="🚀 Generar Itinerario")
 
 # Actualizamos los valores en el estado de sesión después de enviar el formulario
@@ -70,8 +70,8 @@ if submit_button:
         st.session_state.fecha_fin = fecha_fin
     elif not preferencias:
         st.error("❌ Por favor, selecciona al menos una preferencia de viaje.")
-    elif len(preferencias) > 2:
-        st.error("❌ Por favor, selecciona 2 preferencias como máximo.")
+    elif len(preferencias) > 3:
+        st.error("❌ Por favor, selecciona 3 preferencias como máximo.")
     else:
         with st.spinner("Generando tu itinerario... Esto puede tardar algunos minutos ⏳"):
             try:
