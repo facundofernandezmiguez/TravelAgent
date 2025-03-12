@@ -84,11 +84,12 @@ project/
    AMADEUS_API_SECRET="tu_api_key_amadeus_secret"
    ```
 
-   > **Nota:** Ambas claves API son necesarias para que la aplicación funcione correctamente.
+   > **Nota:** Todas las API keys son necesarias para que la aplicación funcione correctamente.
 
 2. **Obtener claves API:**
    - **GROQ_API_KEY**: Registrate en [groq.com](https://groq.com)
    - **SERPER_API_KEY**: Registrate en [serper.dev](https://serper.dev)
+   - **AMADEUS_API_KEY** y **AMADEUS_API_SECRET**: Registrate en [Amadeus](https://developers.amadeus.com/
 
 ## Uso
 
@@ -115,6 +116,6 @@ Podés iniciar la aplicación de dos formas:
 3. Agregá tus preferencias de viaje
 4. Hacé clic en "🚀 Generar Itinerario"
 5. Esperá mientras los agentes de IA trabajan (esto puede tomar unos minutos)
-6. Listo! Revisá tu itinerario personalizado
+6. Listo! Revisá tu itinerario personalizado 📅  
 
 
