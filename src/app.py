@@ -21,19 +21,25 @@ if 'fecha_fin' not in st.session_state:
     st.session_state.fecha_fin = fecha_fin_default
 
 with st.form(key="form_planificacion"):
-    col1, col2 = st.columns(2)
-    with col1:
+    # Primera fila: Ciudad de origen y ciudades de destino
+    row1_col1, row1_col2 = st.columns(2)
+    with row1_col1:
         # Sin valor por defecto para evitar hardcodeo
         origen = st.text_input("📍 Ciudad de origen")
+    with row1_col2:
         destinos_input = st.text_input("🏙️ Ciudades de destino")
         destinos = [d.strip() for d in destinos_input.split(",") if d.strip()]
+    
+    # Segunda fila: Fechas de inicio y regreso
+    row2_col1, row2_col2 = st.columns(2)
+    with row2_col1:
         fecha_inicio = st.date_input(
             "🗓️ Fecha de inicio", 
             value=st.session_state.fecha_inicio, 
             min_value=fecha_actual,
             key="fecha_inicio_input"
         )
-    with col2:
+    with row2_col2:
         # Usamos la fecha_fin del estado de sesión como valor predeterminado
         fecha_fin = st.date_input(
             "🗓️ Fecha de regreso", 
@@ -41,10 +47,12 @@ with st.form(key="form_planificacion"):
             min_value=fecha_actual,  # Será validado después
             key="fecha_fin_input"
         )
-        preferencias = st.multiselect("🌟 Preferencias de viaje", 
-                                      ["Gastronomía", "Relax", "Naturaleza", "Historia", "Arte", "Compras", "Vida nocturna"],
-                                      default=[],
-                                      max_selections=3)
+    
+    # Tercera fila: Preferencias de viaje
+    preferencias = st.multiselect("🌟 Preferencias de viaje", 
+                                  ["Gastronomía", "Relax", "Naturaleza", "Historia", "Arte", "Compras", "Vida nocturna"],
+                                  default=[],
+                                  max_selections=3)
     submit_button = st.form_submit_button(label="🚀 Generar Itinerario")
 
 # Actualizamos los valores en el estado de sesión después de enviar el formulario
