@@ -6,10 +6,12 @@ from datetime import datetime
 # Definir agentes 
 agente_actividades = Agent(
     role="Buscador de Actividades",
-    goal="Encontrar actividades turísticas basadas en las preferencias del usuario",
+    goal="Encontrar actividades turísticas basadas en las preferencias del usuario.",
     backstory=(
-        "Sos un experto en descubrir planes geniales para viajeros. Cuando busques actividades, **enfocate en identificar las principales atracciones de cada ciudad.** " 
-        "No necesitas buscar horarios detallados, precios o información de transporte en esta etapa. "         
+        "Sos un experto en descubrir planes geniales para viajeros."
+        "Es importante que busques una buena cantidad de actividades, suficientes para 3 actividades por día en cada ciudad."
+        "Cuando busques actividades, **enfocate en identificar las principales atracciones de cada ciudad.**"
+        "No necesitas buscar horarios detallados, precios o información de transporte en esta etapa."
         "No hagas sugerencias vagas, como 'Cena en un restaurante típico'. Si vas a recomendar un lugar para comer, o una actividad, debes explicitar el nombre del lugar."
     ),
     tools=[BuscadorWeb()],
@@ -61,8 +63,9 @@ agente_planificacion = Agent(
     backstory=(
         "Sos el Manager y Planificador de Viajes principal. Tu función es COORDINAR a los agentes: para buscar actividades recreativas debes delegar al 'Buscador de Actividades', para buscar transportes debes delegar al 'Buscador de Transportes' y para buscar hoteles debes delegar al 'Buscador de Hoteles'. " 
         "Recibís la información de ellos y la USÁS para crear un itinerario detallado y atractivo. " 
-        "Una vez que recibas informacion de vuelos, hoteles y actividades, presenta los datos de forma ordenada y detiene la busqueda inmediatamente"
+        "Una vez que recibas informacion de vuelos, hoteles y actividades, presenta los datos de forma ordenada y detiene la busqueda inmediatamente."
         "**NO realizás búsquedas de actividades directamente. Tu foco es PLANIFICAR y PRESENTAR la información en un itinerario genial.**"
+        "Es fundamental que respetes la cantidad de {dias} días del viaje. Es FUNDAMENTAL que cada día tenga su actividad de mañana,tarde y noche."
         "**Escribí en un ESPAÑOL ARGENTINO natural y amigable. Utiliza emojis** " 
         "**DESARROLLÁ CADA DÍA DEL ITINERARIO CON UN PÁRRAFO DESCRIPTIVO**, mencionando las actividades principales, "
         "dando **SUGERENCIAS CORTAS Y ATRACTIVAS** sobre qué hacer y ver en cada lugar. " 
@@ -89,7 +92,8 @@ def generar_itinerario(origen, destinos, fecha_inicio, fecha_fin, preferencias):
     )
 
     task_vuelos = Task(
-    description=f"""Encuentra una opcion de vuelo de ida desde {origen} a {destinos[0]}, y de vuelta desde {destinos[-1]} a {origen} (si no está disponible por alguna razón, entonces encuentra una forma de volver a {destinos[0]} y de ahí a {origen}) para el {fecha_inicio} y {fecha_fin}. También encuentra una opcion de transporte de viaje entre ciudades de destino según itinerario (si hay más de uno): {destinos}.
+    description=f"""Encuentra una opcion de vuelo de ida desde {origen} a {destinos[0]}, y de vuelta desde {destinos[-1]} a {origen} (si no está disponible por alguna razón, entonces encuentra una forma de volver a {destinos[0]} y de ahí a {origen}) para el {fecha_inicio} y {fecha_fin}.
+    También encuentra una opcion de transporte de viaje entre ciudades de destino según itinerario (si hay más de uno): {destinos}.
     Si no encuentras un vuelo directo, debes buscar un vuelo que te permita llegar al destino, aunque contenga escalas.
     Usa la herramienta buscar_vuelos con códigos IATA de aeropuertos (3 letras, ej: MAD, BCN, JFK) y formato de fecha YYYY-MM-DD.
     Ejemplo de uso: 'MAD,JFK,2023-12-24' para buscar vuelos de Madrid a Nueva York el 24 de diciembre de 2023.
@@ -110,20 +114,27 @@ def generar_itinerario(origen, destinos, fecha_inicio, fecha_fin, preferencias):
     )
 
     task_planificacion_itinerario = Task(
-        description=f"""Tu tarea principal es planificar un itinerario de viaje DETALLADO DÍA POR DÍA de {dias} días, escrito en ESPAÑOL ARGENTINO con EMOJIS.
+        description=f"""Tu tarea principal es planificar un itinerario de viaje DETALLADO DÍA POR DÍA de {dias} días, escrito en ESPAÑOL ARGENTINO con EMOJIS. NO PUEDE FALTAR NINGUN DIA.
 
         **INSTRUCCIONES DE DELEGACIÓN:**
 
         1. **Primero, DELEGA la tarea de encontrar vuelos** (ida y vuelta y entre ciudades) al agente 'Buscador de Transportes'. Asegúrate de proporcionarle toda la información necesaria: origen, destinos, fechas de viaje.
         2. **Luego, DELEGA la tarea de buscar actividades turísticas** en las ciudades de destino al agente 'Buscador de Actividades'.  Indícale las ciudades y las preferencias del usuario para las actividades (ej: '{preferencias}').
         3. **Finalmente, DELEGA la tarea de encontrar opciones de hoteles** (lujosos y económicos) en cada ciudad de destino al agente 'Buscador de Hoteles'.
-
-        **Una vez que hayas recibido la información de vuelos, actividades y hoteles de los agentes delegados, procede a CREAR el itinerario detallado.**
+        
+        **CREACION DE ITINERARIO**
+        Una vez que hayas recibido la información de vuelos, actividades y hoteles de los agentes delegados, procede a CREAR el itinerario detallado.
+        Tips: 
+            -No olvides que todos los dias deben estar detallados en mañana, tarde y noche.
+            -Recuerda al final, al presentar los vuelos, incluir aerolinea, horarios y precios de los vuelos
+            -No repitas siempre los mismos emojis para presentar las actividades
+            -Respeta el itinerario deseado a continuación
+        
         ES FUNDAMENTAL QUE RESPETES EL ITINERARIO DESEADO:
         **Formato de Itinerario Deseado:**
         Itinerario de {dias} Días: [Ciudad 1] y [Ciudad 2]
 
-**Día 1: [Fecha dia 1] - [Ciudad 1]**
+**Día 1: [Fecha dia 1] - [Ciudad X]**
 
 Mañana:
 Actividad: [Descripción de la actividad] [Emoji].
@@ -135,9 +146,20 @@ Noche:
 Actividad: [Descripción de la actividad] [Emoji].
 Cena: [Sugerencia de cena, si aplica] [Emoji].
 
-**Día 2: [Fecha dia 2] - [Ciudad 2]**
-... (y así sucesivamente para cada día)
+**Día 2: [Fecha dia 2] - [Ciudad X]**
+Mañana:
+Tarde:
+Noche:
+**Día 3: [Fecha dia 3] - [Ciudad X]**
+...
+**Día 4: [Fecha dia 4] - [Ciudad X]**
+...
+**Día 5: [Fecha dia 5] - [Ciudad X]**
+...
+**Día 6: [Fecha dia 6] - [Ciudad X]**
+**Día 7: [Fecha dia 7] - [Ciudad X]**
 
+[así sucesivamente hasta el ultimo dia...]
 **Opciones de Alojamiento 🏨:**
 
 [Ciudad 1]:
@@ -154,26 +176,19 @@ Enlace: [Enlace]
 
 **Opciones de Transporte ✈️:**
 
-Desde [Origen] hasta [Ciudad 1]:
-Empresa: [Nombre de la aerolínea o tren o colectivo]
-Pasaje: [Nº de vuelo o tren (si está disponible)]
-Horario: [Horario de salida] - [Horario de llegada]
-Precio: [Precio del vuelo]
-Enlace: [Enlace al sitio web de la busqueda]
+**IDA (13/06):**
+✈️ **Vuelo [Nombre del vuelo] (Recomendado):**
+- **Aerolínea:** [Nombre de la aerolínea]
+- **Salida:** [Hora de salida] ([Ciudad 1]) ➔ **Llegada:** [Hora de llegada] ([Ciudad 2])
+- **Escalas:** [Cantidad de escalas] ([Tiempo total de escalas])
+- **Precio:** **$[Precio del vuelo]**
 
-Desde [Ciudad1] hasta [Ciudad 2] [Emoji]:
-Empresa: [Nombre de la aerolínea o tren o colectivo]
-Pasaje: [Nº de vuelo o tren (si está disponible)]
-Horario: [Horario de salida] - [Horario de llegada]
-Precio: [Precio del vuelo]
-Enlace: [Enlace al sitio web de la busqueda]
-
-Desde [Ciudad N] hasta [Origen] [Emoji]: 
-Empresa: [Nombre de la aerolínea o tren o colectivo] 
-Pasaje: [Nº de vuelo o tren (si está disponible)]
-Horario: [Horario de salida] - [Horario de llegada]
-Precio: [Precio del vuelo]
-Enlace: [Enlace al sitio web de la busqueda]
+**VUELTA (21/06):**
+✈️ **Vuelo [Nombre del vuelo] (Recomendado):**
+- **Aerolínea:** [Nombre de la aerolínea]
+- **Salida:** [Hora de salida] ([Ciudad 2]) ➔ **Llegada:** [Hora de llegada] ([Ciudad 1])
+- **Escalas:** [Cantidad de escalas] ([Tiempo total de escalas])
+- **Precio:** **$[Precio del vuelo] **
 """
 ,
     agent=agente_planificacion,
