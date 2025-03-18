@@ -6,7 +6,7 @@ Stack tecnológico utilizado:
 - **LLM utilizado:** Qwen-2.5-32B de Alibaba Cloud, servido a través de [Groq](https://groq.com/)
 - **Orquestación de agentes:** framework [CrewAI](https://www.crewai.com/) y utiliza agentes especializados para buscar actividades turísticas, vuelos y hoteles.
 - **Tool de búsqueda web:** Google search a través de [SERPER](https://serper.dev/)
-- **APIs de vuelos:** [Amadeus](https://developers.amadeus.com/)
+- **Tool de búsqueda de vuelos:** [Amadeus](https://developers.amadeus.com/)
 - **Frontend:** Streamlit
 
 ## Tabla de Contenidos
