@@ -3,31 +3,9 @@ from config import llm
 from tools import BuscadorWeb, BuscadorVuelos
 from datetime import datetime
 
-# Variables globales que se establecerán con los valores seleccionados por el usuario
-# Estas serán inicializadas desde app.py y estarán disponibles para todos los agentes
-
-
-# Variable global para los días de viaje
-dias = "7"  # Valor predeterminado
-
-# Función para actualizar la variable global dias
-def establecer_dias(valor_dias):
-    global dias
-    dias = str(valor_dias)
-    return dias
-
-# Función para calcular el número de días de un viaje
-def calcular_dias_viaje(fecha_inicio, fecha_fin):
-    return str((fecha_fin - fecha_inicio).days + 1)
-
 # Función para generar el itinerario
-def generar_itinerario(origen, destinos, fecha_inicio, fecha_fin, preferencias):
-    # Actualizar el número de días
-    establecer_dias(calcular_dias_viaje(fecha_inicio, fecha_fin))
+def generar_itinerario(origen, destinos, fecha_inicio, fecha_fin, preferencias, dias):
     
-    #Guardar el numero de dias de viaje para el itinerario
-    dias = establecer_dias(calcular_dias_viaje(fecha_inicio, fecha_fin))
-
     # Definir agentes 
     agente_actividades = Agent(
         role="Buscador de Actividades",
