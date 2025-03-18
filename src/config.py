@@ -13,7 +13,7 @@ AMADEUS_API_SECRET = os.getenv("AMADEUS_API_SECRET")
 
 # Configurar LLM
 llm = LLM(
-    model="groq/qwen-qwq-32b",
+    model="groq/qwen-2.5-32b",
     temperature=0.0,
     api_key=GROQ_API_KEY
 )

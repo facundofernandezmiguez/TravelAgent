@@ -1,6 +1,6 @@
 import streamlit as st
 from datetime import datetime, timedelta
-from agents import generar_itinerario 
+from agents import generar_itinerario, establecer_dias, calcular_dias_viaje
 
 # Título de la aplicación
 st.title("🌍 Planificador de Viajes con IA ✈️")
@@ -83,6 +83,9 @@ if submit_button:
     else:
         with st.spinner("Generando tu itinerario... Esto puede tardar algunos minutos ⏳"):
             try:
+                # Establecer la variable global dias antes de generar el itinerario
+                establecer_dias(calcular_dias_viaje(fecha_inicio, fecha_fin))
+                
                 itinerario = generar_itinerario(origen, destinos, fecha_inicio, fecha_fin, preferencias)
                 
                 st.success("✅ ¡Itinerario generado exitosamente!")

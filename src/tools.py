@@ -46,9 +46,20 @@ class BuscadorVuelos(BaseTool):
     
     # No inicializar el cliente en __init__ para evitar problemas con pydantic
     def _get_amadeus_client(self):
+        # Debug: Print API credentials (masked for security)
+        api_key = AMADEUS_API_KEY
+        api_secret = AMADEUS_API_SECRET
+        key_masked = api_key[:4] + "****" if api_key and len(api_key) > 4 else "None"
+        secret_masked = "****" + api_secret[-4:] if api_secret and len(api_secret) > 4 else "None"
+        
+        print(f"Debug - API Key: {key_masked}, API Secret: {secret_masked}")
+        
+        if not api_key or not api_secret:
+            raise ValueError("Error: Amadeus API credentials not found in environment variables")
+            
         return Client(
-            client_id=AMADEUS_API_KEY,
-            client_secret=AMADEUS_API_SECRET
+            client_id=api_key,
+            client_secret=api_secret
         )
     
     def _run(self, consulta: str) -> str:
@@ -64,6 +75,9 @@ class BuscadorVuelos(BaseTool):
             origen = partes[0].strip().upper()
             destino = partes[1].strip().upper()
             fecha = partes[2].strip()
+            
+            # Log the search parameters
+            print(f"Debug - Buscando vuelos: Origen={origen}, Destino={destino}, Fecha={fecha}")
             
             # Validar el formato de los códigos IATA
             if len(origen) != 3 or len(destino) != 3:
@@ -84,28 +98,45 @@ class BuscadorVuelos(BaseTool):
                 adultos = int(partes[3].strip())
             
             # Inicializar el cliente de Amadeus
-            amadeus = self._get_amadeus_client()
+            try:
+                amadeus = self._get_amadeus_client()
+                print("Debug - Cliente Amadeus inicializado correctamente")
+            except Exception as e:
+                return f"Error al inicializar el cliente Amadeus: {str(e)}"
             
             # Búsqueda con reintentos
             max_reintentos = 3
             for intento in range(max_reintentos):
                 try:
-                    response = amadeus.shopping.flight_offers_search.get(
-                        originLocationCode=origen,
-                        destinationLocationCode=destino,
-                        departureDate=fecha,
-                        adults=adultos,
-                        max=5  # Limitar a 5 resultados para ahorrar tokens
-                    )
+                    print(f"Debug - Intento {intento+1}/{max_reintentos} de búsqueda")
+                    
+                    # Construir los parámetros de la solicitud
+                    params = {
+                        "originLocationCode": origen,
+                        "destinationLocationCode": destino,
+                        "departureDate": fecha,
+                        "adults": adultos,
+                        "max": 5  # Limitar a 5 resultados para ahorrar tokens
+                    }
+                    print(f"Debug - Parámetros de búsqueda: {params}")
+                    
+                    # Realizar la solicitud
+                    response = amadeus.shopping.flight_offers_search.get(**params)
+                    
+                    print(f"Debug - Respuesta recibida, contiene {len(response.data)} resultados")
                     
                     if not response.data:
                         return f"❌ No se encontraron vuelos para la ruta {origen} → {destino} en la fecha {fecha}."
                     
+                    # Ordenar resultados por número de escalas (priorizar vuelos directos)
+                    vuelos_ordenados = sorted(response.data, 
+                                             key=lambda oferta: len(oferta['itineraries'][0]['segments']) - 1)
+                    
                     # Formatear resultados
                     resultado = f"✈️ Vuelos de {origen} a {destino} para el {fecha}:\n\n"
                     
-                    # Limitar a 3 opciones para optimizar tokens
-                    for i, oferta in enumerate(response.data[:3], 1):
+                    # Limitar a 3 opciones para optimizar tokens (ahora usando los ordenados por escalas)
+                    for i, oferta in enumerate(vuelos_ordenados[:3], 1):
                         precio = oferta['price']['total']
                         moneda = oferta['price']['currency']
                         itinerario = oferta['itineraries'][0]
@@ -141,21 +172,32 @@ class BuscadorVuelos(BaseTool):
                     return resultado
                 
                 except ResponseError as error:
+                    error_str = str(error)
+                    error_code = error.response.status_code if hasattr(error, 'response') else "Unknown"
+                    error_body = error.response.body if hasattr(error, 'response') else "No details"
+                    
+                    print(f"Debug - Amadeus API Error: Code={error_code}, Body={error_body}")
+                    
                     if intento < max_reintentos - 1:
                         # Si es un error de límite de tasa, esperar y reintentar
-                        if "429" in str(error) or "rate" in str(error).lower():
+                        if "429" in error_str or "rate" in error_str.lower():
                             tiempo_espera = (intento + 1) * 2  # Backoff exponencial
+                            print(f"Debug - Rate limit detectado, esperando {tiempo_espera} segundos")
                             time.sleep(tiempo_espera)
                             continue
-                    return f"Error al buscar vuelos: {str(error)}"
+                    
+                    return f"Error al buscar vuelos: [{error_code}] {error_body}"
                 except Exception as e:
+                    print(f"Debug - Error inesperado: {str(e)}")
                     if intento < max_reintentos - 1:
                         tiempo_espera = (intento + 1) * 2
                         time.sleep(tiempo_espera)
                         continue
+                    
                     return f"Error inesperado: {str(e)}"
             
             return "Error: Se alcanzó el número máximo de reintentos sin éxito."
             
         except Exception as e:
+            print(f"Debug - Error general en BuscadorVuelos: {str(e)}")
             return f"Error en la búsqueda de vuelos: {str(e)}"
