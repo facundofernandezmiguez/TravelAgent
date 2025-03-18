@@ -5,7 +5,7 @@ from datetime import datetime
 
 # Función para generar el itinerario
 def generar_itinerario(origen, destinos, fecha_inicio, fecha_fin, preferencias, dias):
-    
+
     # Definir agentes 
     agente_actividades = Agent(
         role="Buscador de Actividades",
@@ -34,7 +34,8 @@ def generar_itinerario(origen, destinos, fecha_inicio, fecha_fin, preferencias, 
     Ejemplo de uso: 'MAD,JFK,2025-04-24' para buscar vuelos de Madrid a Nueva York el 24 de abril de 2025.
     Encuentra el horario del vuelo, pasaje, aerolinea y precio. **Los vuelos deben ser reales, no debes inventar informacion.** 
     Presenta la información de manera concisa: aerolínea, número de vuelo, horarios aproximados de salida y llegada, y precio.
-    IMPORTANTE: busca opciones directas. Si no hay, busca opciones con la menor cantidad de escalas posibles."""
+    IMPORTANTE: busca opciones directas. Si no hay, busca opciones con la menor cantidad de escalas posibles.
+    IMPORTANTE: NO REPITAS LA MISMA BÚSQUEDA. Si ya has realizado una búsqueda para un origen, destino y fecha específicos, NO realices otra búsqueda con los mismos parámetros."""
     ),
     tools=[BuscadorWeb(), BuscadorVuelos()],
     llm=llm,
@@ -104,8 +105,10 @@ def generar_itinerario(origen, destinos, fecha_inicio, fecha_fin, preferencias, 
         
         Tips: 
             -No olvides que todos los dias deben estar detallados en mañana, tarde y noche.
-            -Debes tener en cuenta que el transporte consume tiempo.
-            -Recuerda incluir aerolínea, horarios y precios de los vuelos.
+            -Debes repartir los dias entre los destinos. Como mínimo hay que estar en cada destino 3 días.
+            -Recuerda incluir nombre de aerolínea, horarios, precios de los vuelos y escalas (si las hay).
+            -Si vas a recomendar un restaurante, debes aclarar el nombre. No pongas actividades vagas como 'Cena en un restaurante local'.
+            -Si el destino no es una ciudad, sino un país, selecciona la o las ciudades mas turísticas, sin sobrecargar el itinerario.
         
         ES FUNDAMENTAL QUE RESPETES EL ITINERARIO DESEADO:
         **Formato de Itinerario Deseado:**

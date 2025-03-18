@@ -135,41 +135,46 @@ class BuscadorVuelos(BaseTool):
                     # Formatear resultados
                     resultado = f"✈️ Vuelos de {origen} a {destino} para el {fecha}:\n\n"
                     
-                    # Limitar a 3 opciones para optimizar tokens (ahora usando los ordenados por escalas)
+                    # Limitar a 3 opciones para optimizar tokens
                     for i, oferta in enumerate(vuelos_ordenados[:3], 1):
-                        precio = oferta['price']['total']
-                        moneda = oferta['price']['currency']
-                        itinerario = oferta['itineraries'][0]
-                        segmentos = itinerario['segments']
-                        duracion = itinerario.get('duration', 'No disponible')
-                        
-                        # Info del primer segmento (salida)
-                        primer_segmento = segmentos[0]
-                        aerolinea_codigo = primer_segmento['carrierCode']
-                        numero_vuelo = primer_segmento['number']
-                        hora_salida = primer_segmento['departure']['at'].replace('T', ' ').split('+')[0]
-                        aeropuerto_salida = primer_segmento['departure']['iataCode']
-                        
-                        # Info del último segmento (llegada final)
-                        ultimo_segmento = segmentos[-1]
-                        hora_llegada = ultimo_segmento['arrival']['at'].replace('T', ' ').split('+')[0]
-                        aeropuerto_llegada = ultimo_segmento['arrival']['iataCode']
-                        
-                        # Número de escalas
-                        escalas = len(segmentos) - 1
-                        texto_escalas = "Directo" if escalas == 0 else f"{escalas} escala{'s' if escalas > 1 else ''}"
-                        
-                        # Formato de salida
-                        resultado += f"OPCIÓN {i}:\n"
-                        resultado += f"🛫 Aerolínea: {aerolinea_codigo}\n"
-                        resultado += f"🔢 Vuelo: {aerolinea_codigo}{numero_vuelo}\n"
-                        resultado += f"🕒 Salida: {hora_salida} ({aeropuerto_salida})\n"
-                        resultado += f"🕞 Llegada: {hora_llegada} ({aeropuerto_llegada})\n"
-                        resultado += f"⏱️ Duración: {duracion}\n"
-                        resultado += f"🛑 Escalas: {texto_escalas}\n"
-                        resultado += f"💰 Precio: {precio} {moneda}\n\n"
+                        try:
+                            precio = oferta['price']['total']
+                            moneda = oferta['price']['currency']
+                            itinerario = oferta['itineraries'][0]
+                            segmentos = itinerario['segments']
+                            duracion = itinerario.get('duration', 'No disponible')
+                            
+                            # Info del primer segmento (salida)
+                            primer_segmento = segmentos[0]
+                            aerolinea_codigo = primer_segmento['carrierCode']
+                            numero_vuelo = primer_segmento['number']
+                            hora_salida = primer_segmento['departure']['at'].replace('T', ' ').split('+')[0]
+                            aeropuerto_salida = primer_segmento['departure']['iataCode']
+                            
+                            # Info del último segmento (llegada final)
+                            ultimo_segmento = segmentos[-1]
+                            hora_llegada = ultimo_segmento['arrival']['at'].replace('T', ' ').split('+')[0]
+                            aeropuerto_llegada = ultimo_segmento['arrival']['iataCode']
+                            
+                            # Número de escalas
+                            escalas = len(segmentos) - 1
+                            texto_escalas = "Directo" if escalas == 0 else f"{escalas} escala{'s' if escalas > 1 else ''}"
+                            
+                            # Formato de salida - Estructurado para evitar duplicaciones
+                            resultado += f"OPCIÓN {i}:\n"
+                            resultado += f"🛫 Aerolínea: {aerolinea_codigo}\n"
+                            resultado += f"🔢 Vuelo: {aerolinea_codigo}{numero_vuelo}\n"
+                            resultado += f"🕒 Salida: {hora_salida} ({aeropuerto_salida})\n"
+                            resultado += f"🕞 Llegada: {hora_llegada} ({aeropuerto_llegada})\n"
+                            resultado += f"⏱️ Duración: {duracion}\n"
+                            resultado += f"🛑 Escalas: {texto_escalas}\n"
+                            resultado += f"💰 Precio: {precio} {moneda}\n\n"
+                        except Exception as e:
+                            print(f"Error al procesar el vuelo {i}: {str(e)}")
+                            continue
                     
-                    return resultado
+                    # Limpiar la respuesta para evitar duplicaciones extrañas
+                    return resultado.strip()
                 
                 except ResponseError as error:
                     error_str = str(error)
