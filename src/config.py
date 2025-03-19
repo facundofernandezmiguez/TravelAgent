@@ -11,6 +11,7 @@ SERPER_API_KEY = os.getenv("SERPER_API_KEY")
 AMADEUS_API_KEY = os.getenv("AMADEUS_API_KEY")
 AMADEUS_API_SECRET = os.getenv("AMADEUS_API_SECRET")
 
+
 # Configurar LLM
 llm = LLM(
     model="groq/qwen-2.5-32b",
