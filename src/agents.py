@@ -82,16 +82,17 @@ def generar_itinerario(origen, destinos, fecha_inicio, fecha_fin, preferencias, 
 
 
     task_planificacion_itinerario = Task(
-        description=f"""Tu tarea principal es planificar un itinerario de viaje DETALLADO DÍA POR DÍA de {dias} días, partiendo desde {origen} y yendo a las ciudades {destinos}. Debe estar escrito en ESPAÑOL ARGENTINO con EMOJIS. NO PUEDE FALTAR NINGUN DIA.
+        description=f"""Tu tarea principal es planificar un itinerario de viaje DETALLADO DÍA POR DÍA de {dias} días, partiendo desde {origen} y yendo a las ciudades {destinos}.
+        Debes delegar en los agentes para recopilar informacion necesaria y luego presentar el itinerario. Debe estar escrito en ESPAÑOL ARGENTINO con EMOJIS. NO PUEDE FALTAR NINGUN DIA.
 
         **INSTRUCCIONES DE DELEGACIÓN:**
 
         IMPORTANTE: Solo el agente planificador (Manager) debe ejecutar esta tarea. 
         Como Manager, debes DELEGAR las siguientes tareas:
         
-        1. DELEGA la tarea de buscar vuelos al agente 'Buscador de Transportes'.
-        2. DELEGA la tarea de buscar actividades al agente 'Buscador de Actividades'.
-        3. DELEGA la tarea de buscar hoteles al agente 'Buscador de Hoteles'.
+        1. DELEGA la búsqueda de vuelos al agente 'Buscador de Transportes'.
+        2. DELEGA la búsqueda de actividades al agente 'Buscador de Actividades'.
+        3. DELEGA la búsqueda de hoteles al agente 'Buscador de Hoteles'.
         
         **CREACION DE ITINERARIO**
         Una vez que hayas recibido la información de todos los agentes, crea el itinerario detallado.
@@ -107,7 +108,7 @@ def generar_itinerario(origen, destinos, fecha_inicio, fecha_fin, preferencias, 
             -No olvides que todos los dias deben estar detallados en mañana, tarde y noche.
             -Debes repartir los dias entre los destinos. Como mínimo hay que estar en cada destino 3 días.
             -Recuerda incluir nombre de aerolínea, horarios, precios de los vuelos y escalas (si las hay).
-            -Si vas a recomendar un restaurante, debes aclarar el nombre. No pongas actividades vagas como 'Cena en un restaurante local'.
+            -Si vas a recomendar un restaurante, *debes aclarar el nombre del restaurante*. No pongas actividades vagas como 'Cena en un restaurante local'.
             -Si el destino no es una ciudad, sino un país, selecciona la o las ciudades mas turísticas, sin sobrecargar el itinerario.
         
         ES FUNDAMENTAL QUE RESPETES EL ITINERARIO DESEADO:
@@ -117,42 +118,43 @@ def generar_itinerario(origen, destinos, fecha_inicio, fecha_fin, preferencias, 
 **Día 1: [{fecha_inicio.strftime('%d/%m/%Y')}] - [Ciudad X]**
 # Si este día es un día de viaje (vuelo de ida), indicar claramente que es un día de viaje y NO programar actividades turísticas hasta la llegada.
 
--Mañana:
-Actividad: [Descripción de la actividad] [Emoji].
-Transporte: [Horario de transporte, aerolínea, tren, número de vuelo (si está disponible)] [Emoji]
--Tarde:
-Actividad: [Descripción de la actividad] [Emoji].
-Almuerzo: [Sugerencia de almuerzo, si aplica] [Emoji].
--Noche:
-Actividad: [Descripción de la actividad] [Emoji].
-Cena: [Sugerencia de cena, si aplica] [Emoji].
+-Mañana:\n
+Actividad: [viaje/vuelo de ida].\n
+Transporte: [Horario de salida transporte, Horario de llegada en {destinos[0]}, aerolínea, número de vuelo (si está disponible)] [Emoji]\n
+-Tarde:\n
+Actividad: [Descripción de la actividad] [Emoji].\n
+Almuerzo: [Sugerencia de almuerzo, especificar restaurante] [Emoji].\n
+-Noche:\n
+Actividad: [Descripción de la actividad] [Emoji].\n
+Cena: [Sugerencia de cena, especificar restaurante] [Emoji].\n
 
-[CONTINÚA PARA CADA DÍA...]
+[CONTINÚA PARA CADA DÍA hasta el {fecha_fin.strftime('%d/%m/%Y')}]\n
 
-**Opciones de Alojamiento 🏨:**
+**Opciones de Alojamiento 🏨:**\n
+[Ciudad 1]: {destinos[0]}\n
+[Tipo de Hotel - Lujo/Económico]:\n
+[Nombre del Hotel] ⭐⭐⭐⭐⭐\n
+Dirección: [Dirección]\n
+Enlace: [Enlace]\n
 
-[Ciudad 1]:
-[Tipo de Hotel - Lujo/Económico]:
-[Nombre del Hotel] ⭐⭐⭐⭐⭐
-Dirección: [Dirección]
-Enlace: [Enlace]
+[CONTINUAR PARA CADA CIUDAD]\n
 
-**Opciones de Transporte ✈️:**
+**Opciones de Transporte ✈️:**\n
 
-**IDA ({fecha_inicio.strftime('%d/%m')}):**
-✈️ **Vuelo [Nombre del vuelo] - [Nombre de la aerolinea]:**
-- **Salida:** [Hora de salida] ({origen}) ➔ **Llegada:** [Hora de llegada] ([Ciudad 2])
-- **Precio:** **$[Precio del vuelo]**
+**IDA ({fecha_inicio.strftime('%d/%m')}):**\n
+✈️ **Vuelo [Nombre del vuelo] - [Nombre de la aerolinea]:**\n
+- **Salida:** [Hora de salida] ({origen}) ➔ **Llegada:** [Hora de llegada] ([Ciudad 2])\n
+- **Precio:** **$[Precio del vuelo]**\n
 
-**Entre ciudades de destino:** 
-[emoji segun sea transporte de avion, tren, etc]
-- **Salida:** [Hora de salida] ([Ciudad 1]) ➔ **Llegada:** [Hora de llegada] ([Ciudad 2])
-- **Precio:** **$[Precio del vuelo]**
+**Entre ciudades de destino:**\n
+[emoji segun sea transporte de avion, tren, etc]\n
+- **Salida:** [Hora de salida] ([Ciudad 1]) ➔ **Llegada:** [Hora de llegada] ([Ciudad 2])\n
+- **Precio:** **$[Precio del vuelo]**\n
 
-**VUELTA ({fecha_fin.strftime('%d/%m')}):**
-✈️ **Vuelo [Nombre del vuelo] - [Nombre de la aerolinea]:**
-- **Salida:** [Hora de salida] ([Ciudad 2]) ➔ **Llegada:** [Hora de llegada] ({origen})
-- **Precio:** **$[Precio del vuelo] **
+**VUELTA ({fecha_fin.strftime('%d/%m')}):**\n
+✈️ **Vuelo [Nombre del vuelo] - [Nombre de la aerolinea]:**\n
+- **Salida:** [Hora de salida en la última ciudad] ([Ciudad 2]) ➔ **Llegada:** [Hora de llegada] ({origen})\n
+- **Precio:** **$[Precio del vuelo] **\n
 """,
         agent=agente_planificacion,
         expected_output=""
